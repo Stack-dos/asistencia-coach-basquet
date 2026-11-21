@@ -360,7 +360,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - Next.js (App Router) + TypeScript estricto + Tailwind + ESLint + Prettier.
   - Vitest configurado con un test trivial.
   - Supabase CLI inicializado (`supabase/`), proyecto Supabase creado, variables
-    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Vercel.
+    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en Vercel.
   - `src/lib/supabase/server.ts` y `client.ts` con `@supabase/ssr`.
   - GitHub Actions: lint + typecheck + test en cada PR; el job levanta Supabase local
     (`supabase start`) para que los tests de integración de los hitos siguientes corran en CI.
