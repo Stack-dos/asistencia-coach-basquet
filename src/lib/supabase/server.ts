@@ -15,7 +15,9 @@ export async function createClient() {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options),
           );
-        } catch {}
+        } catch {
+          // Desde un Server Component no se pueden escribir cookies; la sesión la renueva proxy.ts (US-102).
+        }
       },
     },
   });
