@@ -1,0 +1,2 @@
+# LF en todos los archivos de texto, sin importar core.autocrlf (Prettier espera LF).
+* text=auto eol=lf
