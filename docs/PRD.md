@@ -298,7 +298,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 | ID   | Tema                                     | Decisión                                    | Estado      |
 | ---- | ---------------------------------------- | ------------------------------------------- | ----------- |
 | D-01 | Métricas de éxito                        | Sección 1.4                                 | A controlar |
-| D-02 | Stack                                    | Next.js + TS + Tailwind en Vercel, Supabase | A controlar |
+| D-02 | Stack                                    | Next.js + TS + Tailwind en Vercel, Supabase | Confirmada  |
 | D-03 | NFR                                      | Mobile-first, costo 0                       | A controlar |
 | D-04 | Clubes compartidos                       | No, un club = un entrenador                 | A controlar |
 | D-05 | Jugador nuevo                            | Primera pertenencia en el club              | Confirmada  |
@@ -327,11 +327,14 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 | ADR    | Pregunta                                           | Bloquea |
 | ------ | -------------------------------------------------- | ------- |
-| ADR-01 | Confirmar stack (D-02).                            | Hito 1  |
 | ADR-03 | Confirmar modelo de asistencia (D-09, D-11, D-22). | Hito 3  |
 
 ### 9.3 ADRs resueltos
 
+- **ADR-01 — Stack** (D-02). Confirmado por el autor el 2026-11-21. Next.js 16 (App Router) +
+  TypeScript estricto + Tailwind 4 en Vercel; Supabase (PostgreSQL + Auth) con `@supabase/ssr`.
+  Se usan las claves nuevas de Supabase (`sb_publishable_...`), por eso la variable es
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y no `ANON_KEY`.
 - **ADR-02 — Nuevo, abandono, año y temporadas** (D-05, D-06, D-07, D-21, D-23, D-24, D-25).
   Confirmado por el autor el 2026-11-21. La temporada es el año calendario; las categorías se
   crean por temporada; el jugador es una persona del club con una pertenencia por cada paso
