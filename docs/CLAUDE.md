@@ -29,8 +29,20 @@ registra quién vino, quién faltó y quién empezó nuevo.
 - Aprender PostgreSQL y desarrollo frontend.
 - Crear una herramienta útil para cualquier entrenador.
 
-## Stack en consideración
-Vercel (frontend) + Supabase (PostgreSQL + Auth). Pendiente de confirmar.
+## Stack (confirmado, ADR-01)
+Next.js (App Router) + TypeScript + Tailwind en Vercel; Supabase (PostgreSQL + Auth) con `@supabase/ssr`.
+
+## Experiencia previa con el stack
+Es la **primera vez** que el autor trabaja con Next.js, TypeScript, PostgreSQL/Supabase y Vercel.
+Al explicar tareas o guiar paso a paso:
+- Explicar también el **lenguaje** (sintaxis y tipos de TypeScript, JSX/TSX), el **framework**
+  (convenciones de Next.js, Server vs Client Components, archivos especiales) y el **SQL**
+  (cada sentencia, tipo, constraint, índice o política RLS que aparezca).
+- No asumir conocimiento de herramientas del ecosistema (npm, Supabase CLI, Vercel, GitHub Actions):
+  explicar qué hace cada comando y cada archivo de configuración.
+
+## Convenciones
+- Tests en una carpeta aparte (`tests/`), no junto al código.
 
 ## Reglas para Claude
 - No inventar datos ni decisiones: si algo no está definido acá, preguntar.
