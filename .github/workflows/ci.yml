@@ -25,5 +25,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
       # Base local para los tests de integración (desde US-201).
+      - run: npx supabase stop --all --no-backup || true
       - run: npx supabase start
       - run: npm test
