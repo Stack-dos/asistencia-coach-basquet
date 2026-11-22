@@ -35,6 +35,8 @@ jobs:
   deploy-db:
     needs: checks
     if: github.event_name == 'push'
+    # Los secretos viven en el environment "production" (sólo accesible desde main).
+    environment: production
     runs-on: ubuntu-latest
     # Nunca dos deploys de base a la vez; el segundo espera al primero.
     concurrency:
