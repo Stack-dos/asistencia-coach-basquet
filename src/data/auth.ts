@@ -53,3 +53,37 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = formData.get("email");
+  if (typeof email !== "string") return { error: authErrorMessage(undefined) };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) return { error: authErrorMessage(error.code) };
+
+  // Mismo mensaje exista o no la cuenta: no se revela qué emails están registrados.
+  return {
+    success:
+      "Si el email tiene una cuenta, te enviamos un enlace para cambiar la contraseña. Revisá tu bandeja de entrada (y la carpeta de spam).",
+  };
+}
+
+// Requiere la sesión de recuperación que crea /auth/confirm al abrir el link del email.
+export async function updatePassword(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const password = formData.get("password");
+  if (typeof password !== "string")
+    return { error: authErrorMessage(undefined) };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: authErrorMessage(error.code) };
+
+  redirect("/clubes");
+}
