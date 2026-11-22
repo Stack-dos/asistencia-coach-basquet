@@ -5,6 +5,7 @@ const KNOWN_CODES = [
   "invalid_credentials",
   "email_not_confirmed",
   "weak_password",
+  "same_password",
   "over_email_send_rate_limit",
 ];
 

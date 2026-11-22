@@ -6,6 +6,8 @@ export function authErrorMessage(code: string | undefined): string {
       return "Tenés que confirmar tu email antes de ingresar. Revisá tu bandeja de entrada (y la carpeta de spam).";
     case "weak_password":
       return "La contraseña tiene que tener al menos 8 caracteres.";
+    case "same_password":
+      return "La contraseña nueva tiene que ser distinta de la anterior.";
     case "over_email_send_rate_limit":
       return "Se enviaron demasiados emails. Esperá unos minutos y probá de nuevo.";
     default:

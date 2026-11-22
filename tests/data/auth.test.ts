@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { signIn, signOut, signUp } from "@/data/auth";
+import {
+  requestPasswordReset,
+  signIn,
+  signOut,
+  signUp,
+  updatePassword,
+} from "@/data/auth";
 import { authErrorMessage } from "@/domain/auth-errors";
 
 // Reemplazamos Supabase y redirect por "dobles" controlados: estos tests no tocan la red.
@@ -7,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
   signOut: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
+  updateUser: vi.fn(),
   redirect: vi.fn(),
 }));
 
@@ -16,6 +24,8 @@ vi.mock("@/lib/supabase/server", () => ({
       signInWithPassword: mocks.signInWithPassword,
       signUp: mocks.signUp,
       signOut: mocks.signOut,
+      resetPasswordForEmail: mocks.resetPasswordForEmail,
+      updateUser: mocks.updateUser,
     },
   }),
 }));
@@ -105,5 +115,63 @@ describe("signOut", () => {
 
     expect(mocks.signOut).toHaveBeenCalled();
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
+  });
+});
+
+describe("requestPasswordReset", () => {
+  test("devuelve el mismo mensaje de éxito exista o no la cuenta", async () => {
+    mocks.resetPasswordForEmail.mockResolvedValue({ error: null });
+
+    const state = await requestPasswordReset(
+      {},
+      form({ email: "coach@example.com" }),
+    );
+
+    expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith(
+      "coach@example.com",
+    );
+    expect(state.success).toMatch(/si el email tiene una cuenta/i);
+  });
+
+  test("con demasiados pedidos devuelve el error traducido", async () => {
+    mocks.resetPasswordForEmail.mockResolvedValue({
+      error: { code: "over_email_send_rate_limit" },
+    });
+
+    const state = await requestPasswordReset(
+      {},
+      form({ email: "coach@example.com" }),
+    );
+
+    expect(state).toEqual({
+      error: authErrorMessage("over_email_send_rate_limit"),
+    });
+  });
+
+  test("sin email no llama a Supabase", async () => {
+    const state = await requestPasswordReset({}, form({}));
+
+    expect(state).toEqual({ error: authErrorMessage(undefined) });
+    expect(mocks.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("updatePassword", () => {
+  test("si sale bien cambia la contraseña y redirige a /clubes", async () => {
+    mocks.updateUser.mockResolvedValue({ error: null });
+
+    await updatePassword({}, form({ password: "nueva-clave" }));
+
+    expect(mocks.updateUser).toHaveBeenCalledWith({ password: "nueva-clave" });
+    expect(mocks.redirect).toHaveBeenCalledWith("/clubes");
+  });
+
+  test("con la misma contraseña devuelve el error traducido y no redirige", async () => {
+    mocks.updateUser.mockResolvedValue({ error: { code: "same_password" } });
+
+    const state = await updatePassword({}, form({ password: "12345678" }));
+
+    expect(state).toEqual({ error: authErrorMessage("same_password") });
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });
