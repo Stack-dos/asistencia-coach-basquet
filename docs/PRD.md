@@ -424,13 +424,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Entidades:** ninguna.
 - **Testing Mínimo:** test de componente de `ConfirmDialog` (botón deshabilitado hasta escribir
   el nombre exacto).
-- **Archivos a crear:**
-
-  ```txt
-  src/app/(app)/layout.tsx
-  src/app/(app)/clubes/page.tsx
-  src/components/{Breadcrumbs,Button,Input,ConfirmDialog,EmptyState}.tsx
-  ```
 
 ---
 
