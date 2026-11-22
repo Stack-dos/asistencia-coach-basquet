@@ -31,6 +31,9 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ origin: "http://localhost:3000" }),
+}));
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -83,6 +86,11 @@ describe("signUp", () => {
 
     const state = await signUp({}, validForm());
 
+    expect(mocks.signUp).toHaveBeenCalledWith({
+      email: "coach@example.com",
+      password: "12345678",
+      options: { emailRedirectTo: "http://localhost:3000/auth/confirm" },
+    });
     expect(state.success).toMatch(/email/i);
     expect(state.error).toBeUndefined();
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -129,6 +137,7 @@ describe("requestPasswordReset", () => {
 
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith(
       "coach@example.com",
+      { redirectTo: "http://localhost:3000/auth/confirm?type=recovery" },
     );
     expect(state.success).toMatch(/si el email tiene una cuenta/i);
   });

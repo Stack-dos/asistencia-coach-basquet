@@ -1,10 +1,18 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authErrorMessage } from "@/domain/auth-errors";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error?: string; success?: string };
+
+// URL a la que vuelven los links de los emails. Supabase sólo acepta las de su lista de
+// "Redirect URLs", así que un Origin falsificado no sirve para redirigir a otro sitio.
+async function confirmUrl(type?: "recovery"): Promise<string> {
+  const origin = (await headers()).get("origin");
+  return `${origin}/auth/confirm${type ? `?type=${type}` : ""}`;
+}
 
 type Credentials = { email: string; password: string };
 
@@ -38,7 +46,10 @@ export async function signUp(
   if (!credentials) return { error: authErrorMessage(undefined) };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp(credentials);
+  const { error } = await supabase.auth.signUp({
+    ...credentials,
+    options: { emailRedirectTo: await confirmUrl() },
+  });
   if (error) return { error: authErrorMessage(error.code) };
 
   // Mismo mensaje si el email ya tenía cuenta: Supabase responde éxito falso y no revela nada.
@@ -62,7 +73,9 @@ export async function requestPasswordReset(
   if (typeof email !== "string") return { error: authErrorMessage(undefined) };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: await confirmUrl("recovery"),
+  });
   if (error) return { error: authErrorMessage(error.code) };
 
   // Mismo mensaje exista o no la cuenta: no se revela qué emails están registrados.
