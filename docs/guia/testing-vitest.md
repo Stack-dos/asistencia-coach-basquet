@@ -165,3 +165,96 @@ src/data/clubes.ts        →  tests/data/clubes.test.ts   (integración)
 | `toBe` con objetos                                             | `expect({a: 1}).toBe({a: 1})` falla (son objetos distintos). | Usar `toEqual`.                                  |
 | `expect(f()).toThrow()`                                        | El error se lanza antes de que `expect` lo capture.          | Pasar la función: `expect(() => f()).toThrow()`. |
 | `-v` creyendo que es _verbose_                                 | En Vitest `-v` es `--version`.                               | `--reporter=verbose`.                            |
+
+## 8. Mocks: testear código que depende de otros sistemas
+
+**Concepto:** un _mock_ (doble) reemplaza una dependencia real (Supabase, `redirect`) por una
+función falsa que **vos controlás**: decidís qué responde y después verificás cómo la llamaron.
+
+**Problema que resuelve:** las Server Actions de `src/data/auth.ts` llaman a Supabase y a
+`redirect()`. Sin mocks habría que levantar Supabase y simular un request de Next.
+
+**Cómo funciona** (`tests/data/auth.test.ts`):
+
+```ts
+const mocks = vi.hoisted(() => ({ signUp: vi.fn(), redirect: vi.fn() }));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({ auth: { signUp: mocks.signUp } }),
+}));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+
+beforeEach(() => vi.clearAllMocks());
+
+test("con contraseña débil devuelve el error traducido", async () => {
+  mocks.signUp.mockResolvedValue({ error: { code: "weak_password" } }); // qué responde
+  const state = await signUp({}, validForm());
+  expect(state).toEqual({ error: authErrorMessage("weak_password") });
+  expect(mocks.redirect).not.toHaveBeenCalled(); // cómo se usó
+});
+```
+
+| Pieza                                  | Qué hace                                                                    |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `vi.fn()`                              | Función falsa que registra cada llamada (argumentos, cantidad).             |
+| `vi.mock(ruta, fábrica)`               | Cuando el código importa `ruta`, recibe lo que devuelve la fábrica.         |
+| `vi.hoisted(...)`                      | Vitest sube los `vi.mock` arriba de los imports; esto crea los mocks antes. |
+| `.mockResolvedValue(x)`                | "Cuando te llamen, devolvé una promesa con `x`".                            |
+| `toHaveBeenCalledWith(...)`            | Verifica los argumentos de la llamada.                                      |
+| `beforeEach(() => vi.clearAllMocks())` | Limpia el registro antes de cada test: tests independientes.                |
+
+**Límite:** los mocks prueban **tu lógica**, no que el sistema real responda así. Se complementan
+con pruebas contra Supabase local. Ejemplo concreto: el `redirect` real lanza una excepción y el
+mock no; un `redirect()` dentro de `try/catch` pasaría estos tests y fallaría en la app.
+
+## 9. `test.each`: una tabla de casos
+
+```ts
+test.each([
+  // [pathname, isLoggedIn, esperado]
+  ["/", false, "/login"],
+  ["/login", true, "/clubes"],
+])("%s con sesión=%s → %s", (pathname, isLoggedIn, expected) => {
+  expect(getAuthRedirect(pathname, isLoggedIn)).toBe(expected);
+});
+```
+
+Genera **un test por fila**; los `%s` del nombre se reemplazan por los valores. Ideal cuando la
+especificación ya es una tabla (como las reglas de redirección).
+
+## 10. Tests frágiles vs tests de comportamiento
+
+Un test que compara con el texto exacto (`toBe("Credenciales Invalidas")`) falla cada vez que
+mejorás un mensaje, sin que haya un bug: es **frágil**, y la gente termina ignorándolo. Es mejor
+verificar el **comportamiento** que importa: que cada código tenga un mensaje propio, que no se
+repitan (`new Set(messages).size`), que el genérico cubra lo desconocido, que el mensaje de login
+no revele si el email existe.
+
+## 11. Casos borde y mutation testing
+
+**Casos borde:** entradas "raras" que separan una implementación correcta de una que parece andar.
+Para la redirección: `/loginx`, `/authentication`, `/auth`, `/LOGIN`, rutas anidadas.
+
+**Mutation testing (prueba de mutación):** romper el código a propósito y comprobar que algún test
+falla. Si nada falla, falta un test. En US-102 cambiamos `===` por `startsWith` en
+`getAuthRedirect`: las 14 filas "normales" siguieron pasando y sólo los casos borde detectaron el
+bug. **Un test que sólo cubre el camino feliz no protege.**
+
+## 12. TDD (Test-Driven Development)
+
+1. Escribir el test a partir de la especificación (falla: la función no existe).
+2. Escribir el mínimo código que lo haga pasar.
+3. Mejorar el código con los tests como red de seguridad.
+
+Sirve especialmente cuando la especificación es clara (una tabla de reglas).
+
+## 13. Qué se testea dónde (capas)
+
+| Capa                    | Ejemplo                               | Cómo se testea                            |
+| ----------------------- | ------------------------------------- | ----------------------------------------- |
+| Dominio (`src/domain/`) | `getAuthRedirect`, `authErrorMessage` | Unitario puro, sin mocks.                 |
+| Datos (`src/data/`)     | Server Actions                        | Unitario con mocks de Supabase/Next.      |
+| Páginas, proxy, flujos  | Registro → email → confirmar          | Prueba manual / E2E (Playwright, Hito 5). |
+
+Separar la lógica en funciones puras es lo que permite testearla barato: por eso
+`getAuthRedirect` vive en el dominio y no dentro de `proxy.ts`.

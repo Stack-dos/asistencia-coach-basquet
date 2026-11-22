@@ -233,7 +233,122 @@ const cargarClubes = async (): Promise<Club[]> => {
 `Promise<Club[]>` es un **genérico**: el tipo entre `<>` dice qué contiene la promesa (como
 `Array<string>` o `LayoutProps<"/">` en `layout.tsx`).
 
-## 9. Errores comunes
+## 9. Más sintaxis que usamos en US-101 y US-102
+
+### Desestructuración de objetos y arrays
+
+Sacar partes de un objeto o array a variables, en una línea:
+
+```ts
+const { error } = await supabase.auth.signUp(credentials); // objeto: por nombre
+const [state, formAction, pending] = useActionState(signUp, {}); // array: por posición
+cookiesToSet.forEach(({ name, value, options }) => ...); // también en parámetros
+```
+
+### Propiedades abreviadas (_shorthand_)
+
+Si la variable se llama igual que la propiedad, se escribe una vez:
+
+```ts
+const email = "a@b.com";
+const password = "12345678";
+signInWithPassword({ email, password }); // = { email: email, password: password }
+```
+
+### Operador ternario
+
+`condición ? valorSiSí : valorSiNo`. Es un `if/else` que **devuelve un valor**:
+
+```ts
+redirect(type === "recovery" ? "/nueva-contrasena" : "/clubes");
+```
+
+### `?.` y `??`
+
+```ts
+data?.claims.email; // optional chaining: si data es null/undefined, devuelve undefined sin romper
+data?.claims.email ?? null; // nullish coalescing: si lo de la izquierda es null/undefined, usa lo de la derecha
+```
+
+`??` no es lo mismo que `||`: `0 || 5` da `5`, pero `0 ?? 5` da `0` (sólo reemplaza `null` y
+`undefined`).
+
+### `Boolean(x)` y valores _truthy_ / _falsy_
+
+En JS, `null`, `undefined`, `0`, `""` y `false` son **falsy** (cuentan como falso en un `if`); todo
+lo demás es **truthy**. `Boolean(x)` convierte cualquier valor a `true`/`false` explícito:
+
+```ts
+getAuthRedirect(pathname, Boolean(data?.claims)); // la función pide un boolean, no un objeto
+```
+
+### `typeof` como validación y _narrowing_
+
+```ts
+const email = formData.get("email"); // tipo: FormDataEntryValue | null  (string | File | null)
+if (typeof email !== "string") return { error: "..." };
+email.toLowerCase(); // ✅ acá TS ya sabe que es string
+```
+
+Después de un `if` que corta, TS **estrecha** (_narrows_) el tipo. Es la forma correcta de validar
+datos que vienen de afuera (formularios, URLs).
+
+### Aserción de tipo `as`
+
+```ts
+const type = searchParams.get("type") as EmailOtpType | null;
+```
+
+`as` le dice a TS "confiá en mí". **No verifica nada en ejecución**: si mentís, el error aparece
+después. Usarlo sólo cuando otra cosa valida el dato (acá, `verifyOtp` rechaza un `type` inválido).
+Lo mismo vale para el `!` (_non-null assertion_) en `process.env.X!`.
+
+### Genéricos y tipos derivados
+
+```ts
+Promise<AuthState>; // una promesa que va a contener un AuthState
+Record<string, string>; // objeto con claves y valores string
+PageProps<"/login">; // tipo generado por Next para la ruta /login
+(PageProps < "/login") > ["searchParams"]; // "indexed access": el tipo de UNA propiedad de otro tipo
+```
+
+### Tipos que existen sólo en TS
+
+`export type AuthState = { error?: string; success?: string };` — el `?` hace la propiedad
+opcional. `import type { X }` importa sólo el tipo; ambos se borran al compilar (por eso se pueden
+exportar desde un archivo `"use server"`).
+
+### Parámetros que no se usan: `_prevState`
+
+El guion bajo inicial es una convención: "este parámetro está por la firma, no lo uso".
+
+### Closures
+
+Una función "recuerda" las variables del lugar donde fue creada:
+
+```ts
+export async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll(); // usa cookieStore aunque se ejecute mucho después
+      },
+    },
+  });
+}
+```
+
+Por eso `getAll` tiene que crearse **dentro** de `createClient`: cada request tiene su propio
+`cookieStore`.
+
+### Expresiones regulares (regex)
+
+Patrones para buscar texto: `/no existe|no está registrad/i` busca "no existe" **o** "no está
+registrad", sin distinguir mayúsculas (`i`). En el `matcher` del proxy, `(?!...)` es un _negative
+lookahead_: "que NO empiece con...".
+
+## 10. Errores comunes
 
 | Error                                      | Ejemplo                                           | Solución                                             |
 | ------------------------------------------ | ------------------------------------------------- | ---------------------------------------------------- |
@@ -244,7 +359,7 @@ const cargarClubes = async (): Promise<Club[]> => {
 | Confundir `==` con `===`                   | `0 == ""` es `true`.                              | Usar siempre `===` y `!==`.                          |
 | Mutar con `const`                          | `const a = []; a = [1]` ❌ (pero `a.push(1)` ✅). | `const` impide reasignar, no modificar el contenido. |
 
-## 10. Para seguir estudiando
+## 11. Para seguir estudiando
 
 - Handbook oficial: https://www.typescriptlang.org/docs/handbook/intro.html (capítulos "Everyday
   Types" y "Narrowing").
