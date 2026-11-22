@@ -386,8 +386,9 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - Supabase Auth con email + contraseña y confirmación por email.
   - Páginas `/login`, `/registro`, `/recuperar` (envío de email de recuperación) y
     `/nueva-contrasena` (privada: se llega desde el link de recuperación).
-  - Route Handler `/auth/confirm`: valida el `token_hash` de los links de los emails y crea la
-    sesión (flujo SSR de `@supabase/ssr`). Plantillas de email en español en `supabase/templates/`.
+  - Route Handler `/auth/confirm`: canjea el `code` (flujo PKCE de `@supabase/ssr`) con el que
+    Supabase vuelve a la app desde los links de los emails, y crea la sesión. Se usan las plantillas
+    de email por defecto de Supabase (personalizarlas exige SMTP propio).
   - `src/proxy.ts` (en Next 16 `middleware.ts` se renombró a `proxy.ts`): refresca la sesión y
     aplica `getAuthRedirect` (lista de rutas públicas; todo lo demás es privado).
   - Server Actions `signIn`, `signUp`, `signOut`, `requestPasswordReset`, `updatePassword`.

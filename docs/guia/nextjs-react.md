@@ -142,7 +142,7 @@ export default function LoginPage(props: PageProps<"/login">) {
 
 - Server Component: `props.searchParams` (promesa).
 - Client Component: `useSearchParams()` (también exige `<Suspense>`).
-- Route Handler / proxy: `request.nextUrl.searchParams.get("token_hash")`.
+- Route Handler / proxy: `request.nextUrl.searchParams.get("code")`.
 
 ## 10. Cookies
 

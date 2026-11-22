@@ -10,7 +10,7 @@ Conceptos generales (no específicos de un framework) que aparecieron en US-101 
   Server Actions).
 - **Códigos que vimos:** `200` OK, `307` redirección temporal (con header `Location`), `404` no
   existe.
-- **Query params:** lo que va después del `?` en una URL: `/auth/confirm?token_hash=abc&type=email`.
+- **Query params:** lo que va después del `?` en una URL: `/auth/confirm?code=abc&type=recovery`.
 
 ## 2. Cookies
 
@@ -62,7 +62,11 @@ costa de una llamada de red extra.
 - **Validación en la frontera de confianza:** todo lo que llega del navegador (formularios, URLs,
   cookies) puede ser cualquier cosa. Se valida en el servidor; la validación del navegador
   (`required`, `minLength`) es sólo comodidad.
-- **Links de un solo uso:** el `token_hash` de los emails se invalida al usarse.
+- **Links de un solo uso y PKCE:** el link del email se invalida al usarse. Con **PKCE** (_Proof
+  Key for Code Exchange_), al pedir el email el navegador guarda un secreto ("code verifier") en una
+  cookie; el link trae un `code` que sólo se puede canjear por la sesión junto con ese secreto. Así,
+  quien intercepte el link no puede usarlo. Contra: funciona sólo en el mismo navegador y con el
+  último pedido.
 - **Mínimo privilegio:** dar sólo los permisos necesarios (la CI con `contents: read`, Vercel con
   acceso a un solo repo).
 - **Caché y sesiones:** una respuesta que escribe una cookie de sesión no debe cachearse en un CDN

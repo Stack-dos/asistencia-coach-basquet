@@ -15,8 +15,10 @@ mano en el dashboard. Cada vez que cambie algo de Auth en `config.toml`, hay que
 | Site URL      | URL de producción de Vercel (ej. `https://<proyecto>.vercel.app`) |
 | Redirect URLs | `https://<proyecto>.vercel.app/**`                                |
 
-El **Site URL** es la base de los links de los emails (`{{ .SiteURL }}`). Si queda en
-`localhost`, los links de producción apuntan a la PC de cada usuario.
+**Redirect URLs es obligatorio:** después de verificar el link del email, Supabase redirige a
+`/auth/confirm` de la app; si esa URL no está en la lista, redirige al Site URL y el login o la
+recuperación fallan. El Site URL es el destino por defecto: si queda en `localhost`, los links de
+producción apuntan a la PC de cada usuario.
 
 ### Authentication → Sign In / Providers → Email
 
@@ -25,17 +27,11 @@ El **Site URL** es la base de los links de los emails (`{{ .SiteURL }}`). Si que
 | Confirm email           | Activado | `[auth.email] enable_confirmations = true` |
 | Minimum password length | 8        | `[auth] minimum_password_length = 8`       |
 
-### Authentication → Emails → Templates
+### Emails
 
-Copiar el HTML de cada plantilla local y su asunto:
-
-| Plantilla      | Asunto                 | Contenido                              |
-| -------------- | ---------------------- | -------------------------------------- |
-| Confirm signup | Confirmá tu cuenta     | `supabase/templates/confirmation.html` |
-| Reset password | Recuperá tu contraseña | `supabase/templates/recovery.html`     |
-
-Lo importante es el link: tiene que apuntar a `/auth/confirm` con `token_hash` (el formato SSR),
-no al link por defecto de Supabase.
+Se usan las **plantillas y el servidor de email por defecto** de Supabase (en inglés; para
+personalizarlas hace falta un SMTP propio). El servidor por defecto tiene un límite muy bajo de
+emails por hora y es para pruebas: antes de tener usuarios reales, configurar un SMTP propio.
 
 ## Vercel
 
@@ -43,15 +39,9 @@ No requiere cambios para US-102: las variables `NEXT_PUBLIC_SUPABASE_URL` y
 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ya están cargadas (tipo **Config**, entornos Production y
 Preview).
 
-## Límite de emails
-
-El servidor de email incluido en Supabase tiene un límite muy bajo por hora y es sólo para pruebas.
-Antes de tener usuarios reales, configurar un SMTP propio (Authentication → Emails → SMTP
-Settings), por ejemplo Resend o Brevo.
-
 ## Verificación en producción
 
 1. Registrarse en `https://<proyecto>.vercel.app/registro` con un email real.
-2. El email llega en español y el link apunta al dominio de Vercel (no a `localhost`).
+2. Llega el email (en inglés) y, al hacer clic, se vuelve al dominio de Vercel (no a `localhost`).
 3. Al hacer clic, se llega a `/clubes` con "Hola, <email>".
 4. Recuperar contraseña: el link lleva a `/nueva-contrasena`.
