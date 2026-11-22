@@ -1042,8 +1042,12 @@ Los tiempos asumen un único desarrollador sin guardia.
   incompatible, `MINOR` por funcionalidad nueva, `PATCH` por correcciones.
 - **Ramas:** `main` siempre desplegable; una rama por historia (`us-302-tomar-asistencia`);
   PR a `main`. Vercel genera preview por PR.
-- **Pasos de un release:** 1) todas las historias del hito mergeadas; 2) `supabase db push`
-  contra producción; 3) actualizar `CHANGELOG.md`; 4) tag `vX.Y.Z`; 5) verificar producción.
+- **Migraciones en producción:** las aplica el job `deploy-db` de `ci.yml` en cada push a
+  `main`, después de que pasen los checks (`supabase db push --remote`). Secretos en GitHub:
+  `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`. Vercel despliega el
+  código en paralelo, así que las migraciones tienen que ser compatibles con el código anterior
+  (agregar sí; renombrar o borrar columnas, en dos pasos).
+- **Pasos de un release:** 1) todas las historias del hito mergeadas (y `deploy-db` verde); 2) actualizar `CHANGELOG.md`; 3) tag `vX.Y.Z`; 4) verificar producción.
 - **CHANGELOG:** formato _Keep a Changelog_ (Agregado / Cambiado / Corregido) en español.
 - **Hotfix:** rama `hotfix/descripcion` desde `main`, PR, release `PATCH`.
 
