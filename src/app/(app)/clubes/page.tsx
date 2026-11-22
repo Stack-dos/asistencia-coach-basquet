@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 export default function ClubesPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold">Clubes</h1>
+      <h1 className="text-4xl">Clubes</h1>
       <EmptyState
         title="Todavía no tenés clubes"
         description="Cuando crees tu primer club, lo vas a ver acá."

@@ -16,16 +16,18 @@ export function Input({
 }: InputProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id}>{label}</label>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="font-medium">
+        {label}
+      </label>
       <input
         id={id}
         aria-describedby={hintId}
-        className={`rounded border px-3 py-2 ${className}`}
+        className={`min-h-11 rounded-lg border border-line-strong bg-surface px-3 text-base ${className}`}
         {...rest}
       />
       {hint && (
-        <p id={hintId} className="text-sm opacity-70">
+        <p id={hintId} className="text-sm text-muted">
           {hint}
         </p>
       )}

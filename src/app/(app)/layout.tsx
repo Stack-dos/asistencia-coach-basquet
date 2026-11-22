@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { signOut } from "@/data/auth";
 import { getCurrentUserEmail } from "@/data/user";
 
@@ -8,7 +9,10 @@ import { getCurrentUserEmail } from "@/data/user";
 async function UserEmail() {
   const email = await getCurrentUserEmail();
   return (
-    <span className="min-w-0 truncate text-sm opacity-70" title={email ?? ""}>
+    <span
+      className="min-w-0 truncate text-sm text-stone-300"
+      title={email ?? ""}
+    >
       {email}
     </span>
   );
@@ -19,22 +23,29 @@ async function UserEmail() {
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
-      <header className="flex items-center gap-3 border-b px-4 py-3">
-        <Link href="/clubes" className="shrink-0 font-semibold">
-          Asistencia<span className="hidden sm:inline"> a Entrenamientos</span>
+      <header className="flex items-center gap-3 bg-foreground px-4 py-3 text-background sm:px-8">
+        <Link
+          href="/clubes"
+          className="flex shrink-0 items-center gap-2 font-display text-xl font-bold uppercase tracking-wide text-background no-underline"
+        >
+          <Logo />
+          <span>
+            Asistencia
+            <span className="hidden sm:inline"> a Entrenamientos</span>
+          </span>
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-3">
           <Suspense>
             <UserEmail />
           </Suspense>
           <form action={signOut} className="shrink-0">
-            <Button type="submit" variant="secondary">
+            <Button type="submit" variant="onDark">
               Cerrar sesión
             </Button>
           </form>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4">
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:py-8">
         {children}
       </main>
     </>

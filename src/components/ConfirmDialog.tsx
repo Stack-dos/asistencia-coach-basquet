@@ -46,16 +46,16 @@ export function ConfirmDialog({
         ref={dialogRef}
         onClose={() => setTyped("")}
         aria-labelledby={`${id}-title`}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded bg-background p-6 text-foreground backdrop:bg-black/50"
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl bg-surface p-6 text-foreground shadow-xl backdrop:bg-stone-900/50"
       >
         <div className="flex flex-col gap-4">
-          <h2 id={`${id}-title`} className="text-lg font-semibold">
+          <h2 id={`${id}-title`} className="text-2xl">
             {title}
           </h2>
-          <p>{description}</p>
+          <p className="text-stone-700">{description}</p>
 
           {confirmText !== undefined && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <label htmlFor={`${id}-text`}>
                 Para confirmar, escribí <strong>{confirmText}</strong>
               </label>
@@ -64,7 +64,7 @@ export function ConfirmDialog({
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
                 autoComplete="off"
-                className="rounded border px-3 py-2"
+                className="min-h-11 rounded-lg border border-line-strong bg-surface px-3 text-base"
               />
             </div>
           )}
