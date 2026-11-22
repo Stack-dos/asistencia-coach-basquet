@@ -373,16 +373,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - AC3: `supabase start` levanta la base local sin errores.
 - **Entidades:** ninguna.
 - **Testing Mínimo:** test trivial de Vitest que valida la configuración.
-- **Archivos a crear:**
-
-```txt
-package.json, tsconfig.json, .eslintrc, .prettierrc, vitest.config.ts
-.github/workflows/ci.yml
-.env.example
-supabase/config.toml
-src/app/layout.tsx, src/app/page.tsx
-src/lib/supabase/server.ts, src/lib/supabase/client.ts
-```
 
 #### Épica H1-E2: Acceso del entrenador
 
@@ -394,9 +384,15 @@ src/lib/supabase/server.ts, src/lib/supabase/client.ts
   para que mis planteles sean sólo míos.
 - **Detalle técnico:**
   - Supabase Auth con email + contraseña y confirmación por email.
-  - Páginas `/login`, `/registro`, `/recuperar` (envío de email de recuperación).
-  - `src/middleware.ts`: refresca la sesión y redirige a `/login` las rutas privadas.
-  - Server Action `signOut`.
+  - Páginas `/login`, `/registro`, `/recuperar` (envío de email de recuperación) y
+    `/nueva-contrasena` (privada: se llega desde el link de recuperación).
+  - Route Handler `/auth/confirm`: canjea el `code` (flujo PKCE de `@supabase/ssr`) con el que
+    Supabase vuelve a la app desde los links de los emails, y crea la sesión. Se usan las plantillas
+    de email por defecto de Supabase (personalizarlas exige SMTP propio).
+  - `src/proxy.ts` (en Next 16 `middleware.ts` se renombró a `proxy.ts`): refresca la sesión y
+    aplica `getAuthRedirect` (lista de rutas públicas; todo lo demás es privado).
+  - Server Actions `signIn`, `signUp`, `signOut`, `requestPasswordReset`, `updatePassword`.
+  - `/clubes` mínima ("Hola, email" + cerrar sesión), que US-103 reemplaza.
 - **Criterios de Aceptación:**
   - AC1: un usuario nuevo se registra, confirma el email e ingresa.
   - AC2: con credenciales incorrectas se muestra un error en español sin revelar si el email
@@ -406,21 +402,8 @@ src/lib/supabase/server.ts, src/lib/supabase/client.ts
   - AC5: se puede pedir el email de recuperación y definir una contraseña nueva.
 - **Reglas de Negocio:** RN-01 (base del aislamiento).
 - **Entidades:** `auth.users`.
-- **Testing Mínimo:** unitario de la lógica de redirección del middleware; prueba manual del
-  flujo de registro documentada en el PR.
-- **Archivos a crear:**
-
-  ```txt
-  src/middleware.ts
-  src/app/(auth)/login/page.tsx
-  src/app/(auth)/registro/page.tsx
-  src/app/(auth)/recuperar/page.tsx
-  src/data/auth.ts
-  ```
-
-> ⚠️ **Esto tiene que controlarse** (D-17) — **Pregunta:** ¿cómo se autentica el entrenador?
-> **Decisión:** email + contraseña. **Por qué:** es el método base de Supabase Auth, sin
-> configurar proveedores externos; login con Google queda en roadmap.
+- **Testing Mínimo:** unitario de la lógica de redirección (`getAuthRedirect`); prueba manual del
+  flujo completo documentada en el PR (`docs/pruebas/us-102.md`).
 
 #### US-103 — Estructura de navegación privada
 
