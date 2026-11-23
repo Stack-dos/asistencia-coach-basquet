@@ -1,5 +1,33 @@
 import { describe, expect, test } from "vitest";
-import { currentSeasonYear, parseSeasonYear } from "@/domain/season";
+import {
+  currentSeasonYear,
+  defaultJoinedOn,
+  parseSeasonYear,
+  todayInArgentina,
+} from "@/domain/season";
+
+describe("todayInArgentina", () => {
+  test("devuelve AAAA-MM-DD en hora de Argentina", () => {
+    // 2/3/2026 02:00 UTC = 1/3/2026 23:00 en Argentina.
+    expect(todayInArgentina(new Date("2026-03-02T02:00:00Z"))).toBe(
+      "2026-03-01",
+    );
+  });
+});
+
+describe("defaultJoinedOn", () => {
+  test("hoy, si cae en la temporada", () => {
+    expect(defaultJoinedOn(2026, "2026-11-23")).toBe("2026-11-23");
+  });
+
+  test("temporada pasada: su último día", () => {
+    expect(defaultJoinedOn(2025, "2026-11-23")).toBe("2025-12-31");
+  });
+
+  test("temporada futura: su primer día", () => {
+    expect(defaultJoinedOn(2027, "2026-11-23")).toBe("2027-01-01");
+  });
+});
 
 describe("currentSeasonYear", () => {
   test("usa la hora de Argentina, no la de UTC", () => {

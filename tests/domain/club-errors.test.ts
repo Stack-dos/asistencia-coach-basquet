@@ -1,5 +1,23 @@
 import { describe, expect, test } from "vitest";
-import { categoryErrorMessage, clubErrorMessage } from "@/domain/club-errors";
+import {
+  categoryErrorMessage,
+  clubErrorMessage,
+  playerErrorMessage,
+} from "@/domain/club-errors";
+
+describe("playerErrorMessage", () => {
+  test("exclusion_violation (23P01): ya está en la categoría en esas fechas", () => {
+    expect(playerErrorMessage("23P01")).toMatch(/ya está en esta categoría/);
+  });
+
+  test("check_violation (23514): fecha inválida para la categoría", () => {
+    expect(playerErrorMessage("23514")).toMatch(/fecha de alta/);
+  });
+
+  test("cualquier otro código da un mensaje genérico", () => {
+    expect(playerErrorMessage("XX000")).toMatch(/error inesperado/);
+  });
+});
 
 describe("clubErrorMessage", () => {
   test("unique_violation (23505) avisa que el nombre está repetido", () => {
