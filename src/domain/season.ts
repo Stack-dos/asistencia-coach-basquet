@@ -2,14 +2,20 @@
 export const MIN_SEASON_YEAR = 2000;
 export const MAX_SEASON_YEAR = 2100;
 
-// La temporada es el año calendario (D-23) en Argentina: el servidor corre en UTC y el
-// 31/12 a las 21 h de acá ya sería el año siguiente.
-export function currentSeasonYear(now: Date = new Date()): number {
-  const year = new Intl.DateTimeFormat("en", {
+/**
+ * Fecha de hoy en Argentina como "AAAA-MM-DD" (el formato de <input type="date"> y de Postgres).
+ * El servidor corre en UTC: el 31/12 a las 21 h de acá allá ya es el año siguiente.
+ */
+export function todayInArgentina(now: Date = new Date()): string {
+  // en-CA formatea como AAAA-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
   }).format(now);
-  return Number(year);
+}
+
+// La temporada es el año calendario (D-23) en Argentina.
+export function currentSeasonYear(now: Date = new Date()): number {
+  return Number(todayInArgentina(now).slice(0, 4));
 }
 
 /** Año de `?temporada=` de la URL; si falta o no es válido, el año actual. */
@@ -22,4 +28,14 @@ export function parseSeasonYear(
   const year = Number(raw);
   if (year < MIN_SEASON_YEAR || year > MAX_SEASON_YEAR) return currentYear;
   return year;
+}
+
+/**
+ * Fecha de alta propuesta en el formulario: hoy, si cae en la temporada de la categoría; si no,
+ * el día de la temporada más cercano a hoy (31/12 de una pasada, 1/1 de una futura).
+ */
+export function defaultJoinedOn(seasonYear: number, today: string): string {
+  const year = Number(today.slice(0, 4));
+  if (year === seasonYear) return today;
+  return year > seasonYear ? `${seasonYear}-12-31` : `${seasonYear}-01-01`;
 }
