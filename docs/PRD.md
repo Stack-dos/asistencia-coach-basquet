@@ -594,13 +594,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Entidades:** `categories`, `category_players`.
 - **Testing Mínimo:** integración: copia de categorías y asignación; las estadísticas del año
   anterior quedan iguales.
-- **Archivos a crear:**
-
-  ```txt
-  src/data/seasons.ts
-  src/app/(app)/clubes/[clubId]/temporada/[year]/page.tsx
-  tests/integration/seasons.test.ts
-  ```
 
 > ✅ **Confirmada** (D-25) — **Pregunta:** ¿se guarda el año de nacimiento para asignar la
 > categoría automáticamente? **Decisión:** se guarda `birth_year` como dato opcional e
