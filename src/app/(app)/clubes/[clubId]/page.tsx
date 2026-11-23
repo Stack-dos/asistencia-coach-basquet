@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -10,7 +11,11 @@ import { listCategories } from "@/data/categories";
 import { createCategory } from "@/data/categories-actions";
 import { getClub } from "@/data/clubs";
 import { deleteClub, renameClub } from "@/data/clubs-actions";
-import { currentSeasonYear, parseSeasonYear } from "@/domain/season";
+import {
+  currentSeasonYear,
+  MIN_SEASON_YEAR,
+  parseSeasonYear,
+} from "@/domain/season";
 
 type Props = PageProps<"/clubes/[clubId]">;
 
@@ -38,6 +43,12 @@ async function ClubDetail({
 
       <section className="flex flex-col gap-4">
         <SeasonPicker basePath={`/clubes/${club.id}`} year={year} />
+        {/* US-205: el año anterior tiene que existir en el rango de temporadas. */}
+        {year > MIN_SEASON_YEAR && (
+          <Link href={`/clubes/${club.id}/temporada/${year}`}>
+            Iniciar la temporada {year} desde {year - 1}
+          </Link>
+        )}
         {categories.length === 0 ? (
           <EmptyState
             title={`Todavía no hay categorías en ${year}`}
