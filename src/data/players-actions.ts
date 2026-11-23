@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { playerErrorMessage } from "@/domain/club-errors";
+import { leaveErrorMessage, playerErrorMessage } from "@/domain/club-errors";
 import {
   isSameName,
   joinedOnError,
+  leftOnError,
   parsePlayerInput,
+  rejoinDateError,
   type PlayerFields,
 } from "@/domain/players";
 import { currentSeasonYear } from "@/domain/season";
@@ -39,6 +41,11 @@ function readPlayerFields(formData: FormData): PlayerFields {
     birthYear: text("birth_year"),
     joinedOn: text("joined_on"),
   };
+}
+
+function readDate(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
 }
 
 function playersPath(clubId: string, categoryId: string) {
@@ -194,4 +201,76 @@ export async function deletePlayer(
   redirect(
     deleted ? playersPath(deleted.club_id, deleted.category_id) : "/clubes",
   );
+}
+
+/** Estado de los forms de una sola fecha (baja y vuelta). */
+export type DateFormState = { error?: string };
+
+/**
+ * US-204: dar de baja (abandono, RN-10). Cierra la pertenencia con la fecha elegida; el historial
+ * queda (RN-04). Se usa con .bind(null, membershipId). El alta y la temporada salen de la base.
+ */
+export async function markLeft(
+  membershipId: string,
+  _prevState: DateFormState,
+  formData: FormData,
+): Promise<DateFormState> {
+  const leftOn = readDate(formData, "left_on");
+  const membership = await getMembership(membershipId);
+  const category = membership && (await getCategory(membership.category_id));
+  if (!membership || !category) return { error: leaveErrorMessage(undefined) };
+
+  // AC1: la base también lo rechaza (check left_on >= joined_on); acá, con un mensaje claro.
+  const dateError = leftOnError(
+    leftOn,
+    membership.joined_on,
+    category.season_year,
+  );
+  if (dateError) return { error: dateError };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("category_players")
+    .update({ left_on: leftOn })
+    .eq("id", membershipId);
+  if (error) return { error: leaveErrorMessage(error.code) };
+
+  refreshClubs();
+  redirect(playersPath(category.club_id, category.id));
+}
+
+/**
+ * US-204: "Volver a cargar" (es addExistingPlayer de US-203). Crea una pertenencia NUEVA desde la
+ * fecha elegida; el período de baja queda como hueco (AC3). Se usa con .bind(null, membershipId)
+ * de la pertenencia dada de baja: el jugador, la categoría y la fecha de baja salen de la base.
+ */
+export async function rejoinPlayer(
+  membershipId: string,
+  _prevState: DateFormState,
+  formData: FormData,
+): Promise<DateFormState> {
+  const joinedOn = readDate(formData, "joined_on");
+  const membership = await getMembership(membershipId);
+  const category = membership && (await getCategory(membership.category_id));
+  if (!membership?.left_on || !category) {
+    return { error: playerErrorMessage(undefined) };
+  }
+
+  const dateError = rejoinDateError(
+    joinedOn,
+    membership.left_on,
+    category.season_year,
+  );
+  if (dateError) return { error: dateError };
+
+  // Si igual se superpone con otra pertenencia (ej. ya lo habían vuelto a cargar), la base
+  // responde 23P01 y addExistingPlayer lo traduce.
+  const state = await addExistingPlayer(
+    category.id,
+    membership.player.id,
+    joinedOn,
+  );
+  if (state.error) return { error: state.error };
+
+  redirect(playersPath(category.club_id, category.id));
 }
