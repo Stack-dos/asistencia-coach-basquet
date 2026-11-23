@@ -3,9 +3,11 @@ import {
   addExistingPlayer,
   createPlayer,
   deletePlayer,
+  markLeft,
+  rejoinPlayer,
   updatePlayer,
 } from "@/data/players-actions";
-import { playerErrorMessage } from "@/domain/club-errors";
+import { leaveErrorMessage, playerErrorMessage } from "@/domain/club-errors";
 
 // Las lecturas (getCategory, getMembership, listClubPlayers) se reemplazan por dobles: acá se
 // prueba la lógica de las acciones, no las consultas (esas tienen sus propios tests).
@@ -303,5 +305,131 @@ describe("deletePlayer", () => {
 
     expect(state).toEqual({ error: playerErrorMessage("XX000") });
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("markLeft (US-204)", () => {
+  const active = {
+    id: "m-1",
+    category_id: "cat-1",
+    joined_on: "2026-03-02",
+    left_on: null,
+    player: juan,
+  };
+
+  test("cierra la pertenencia con la fecha y vuelve al plantel", async () => {
+    mocks.getMembership.mockResolvedValue(active);
+
+    await markLeft("m-1", {}, form({ left_on: "2026-05-15" }));
+
+    expect(mocks.calls).toEqual([
+      ["from", ["category_players"]],
+      ["update", [{ left_on: "2026-05-15" }]],
+      ["eq", ["id", "m-1"]],
+    ]);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/clubes", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/clubes/club-1/categorias/cat-1/jugadores",
+    );
+  });
+
+  test("AC1: una baja anterior al alta se rechaza sin tocar la base", async () => {
+    mocks.getMembership.mockResolvedValue(active);
+
+    const state = await markLeft("m-1", {}, form({ left_on: "2026-03-01" }));
+
+    expect(state.error).toMatch(/anterior al alta/);
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
+  test("si la base rechaza (23514), traduce el error", async () => {
+    mocks.getMembership.mockResolvedValue(active);
+    mocks.state.results = [{ error: { code: "23514" } }];
+
+    const state = await markLeft("m-1", {}, form({ left_on: "2026-05-15" }));
+
+    expect(state).toEqual({ error: leaveErrorMessage("23514") });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  test("con una pertenencia inexistente o ajena, error genérico", async () => {
+    mocks.getMembership.mockResolvedValue(null);
+
+    const state = await markLeft("m-1", {}, form({ left_on: "2026-05-15" }));
+
+    expect(state.error).toBe(leaveErrorMessage(undefined));
+  });
+});
+
+describe("rejoinPlayer (US-204)", () => {
+  const left = {
+    id: "m-1",
+    category_id: "cat-1",
+    joined_on: "2026-03-02",
+    left_on: "2026-05-15",
+    player: juan,
+  };
+
+  test("AC3: crea una pertenencia NUEVA desde la fecha de vuelta", async () => {
+    mocks.getMembership.mockResolvedValue(left);
+
+    await rejoinPlayer("m-1", {}, form({ joined_on: "2026-09-07" }));
+
+    expect(mocks.calls).toEqual([
+      ["from", ["category_players"]],
+      [
+        "insert",
+        [
+          {
+            category_id: "cat-1",
+            player_id: "player-1",
+            joined_on: "2026-09-07",
+          },
+        ],
+      ],
+    ]);
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/clubes/club-1/categorias/cat-1/jugadores",
+    );
+  });
+
+  test("una vuelta no posterior a la baja se rechaza sin tocar la base", async () => {
+    mocks.getMembership.mockResolvedValue(left);
+
+    const state = await rejoinPlayer(
+      "m-1",
+      {},
+      form({ joined_on: "2026-05-15" }),
+    );
+
+    expect(state.error).toMatch(/posterior a la baja/);
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
+  test("si la base detecta superposición (23P01), lo avisa", async () => {
+    mocks.getMembership.mockResolvedValue(left);
+    mocks.state.results = [{ error: { code: "23P01" } }];
+
+    const state = await rejoinPlayer(
+      "m-1",
+      {},
+      form({ joined_on: "2026-09-07" }),
+    );
+
+    expect(state).toEqual({ error: playerErrorMessage("23P01") });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  test("sobre una pertenencia que sigue activa, error genérico", async () => {
+    mocks.getMembership.mockResolvedValue({ ...left, left_on: null });
+
+    const state = await rejoinPlayer(
+      "m-1",
+      {},
+      form({ joined_on: "2026-09-07" }),
+    );
+
+    expect(state.error).toBe(playerErrorMessage(undefined));
+    expect(mocks.from).not.toHaveBeenCalled();
   });
 });

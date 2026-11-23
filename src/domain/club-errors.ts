@@ -19,6 +19,13 @@ export function playerErrorMessage(code: string | undefined): string {
   }
 }
 
+export function leaveErrorMessage(code: string | undefined): string {
+  // check_violation: baja anterior al alta (category_players_dates_check) o fuera de temporada
+  if (code === "23514")
+    return "La fecha de baja tiene que estar dentro de la temporada y no puede ser anterior al alta.";
+  return UNEXPECTED;
+}
+
 export function categoryErrorMessage(code: string | undefined): string {
   // categories_club_id_name_season_year_key
   if (code === UNIQUE_VIOLATION)

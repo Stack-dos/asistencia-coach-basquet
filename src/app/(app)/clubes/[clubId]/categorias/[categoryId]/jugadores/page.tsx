@@ -8,7 +8,7 @@ import { getCategory } from "@/data/categories";
 import { listPlayers, type Membership } from "@/data/players";
 import { createPlayer } from "@/data/players-actions";
 import { formatDate } from "@/domain/players";
-import { defaultJoinedOn, todayInArgentina } from "@/domain/season";
+import { defaultDateInSeason, todayInArgentina } from "@/domain/season";
 
 type Props = PageProps<"/clubes/[clubId]/categorias/[categoryId]/jugadores">;
 
@@ -73,7 +73,10 @@ async function Players({ params, searchParams }: Props) {
             firstName: "",
             lastName: "",
             birthYear: "",
-            joinedOn: defaultJoinedOn(category.season_year, todayInArgentina()),
+            joinedOn: defaultDateInSeason(
+              category.season_year,
+              todayInArgentina(),
+            ),
           }}
           submitLabel="Agregar jugador"
           pendingLabel="Agregando…"
