@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   currentSeasonYear,
-  defaultJoinedOn,
+  defaultDateInSeason,
   parseSeasonYear,
   todayInArgentina,
 } from "@/domain/season";
@@ -15,17 +15,17 @@ describe("todayInArgentina", () => {
   });
 });
 
-describe("defaultJoinedOn", () => {
+describe("defaultDateInSeason", () => {
   test("hoy, si cae en la temporada", () => {
-    expect(defaultJoinedOn(2026, "2026-11-23")).toBe("2026-11-23");
+    expect(defaultDateInSeason(2026, "2026-11-23")).toBe("2026-11-23");
   });
 
   test("temporada pasada: su último día", () => {
-    expect(defaultJoinedOn(2025, "2026-11-23")).toBe("2025-12-31");
+    expect(defaultDateInSeason(2025, "2026-11-23")).toBe("2025-12-31");
   });
 
   test("temporada futura: su primer día", () => {
-    expect(defaultJoinedOn(2027, "2026-11-23")).toBe("2027-01-01");
+    expect(defaultDateInSeason(2027, "2026-11-23")).toBe("2027-01-01");
   });
 });
 

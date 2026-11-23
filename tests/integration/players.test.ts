@@ -95,6 +95,74 @@ describe("players y category_players", () => {
     expect(error?.code).toBe("23514");
   });
 
+  // Con su propio jugador, para no cambiar las pertenencias que miran los tests de RLS.
+  describe("US-204: baja y vuelta", () => {
+    let membershipId: string;
+    let playerId: string;
+
+    beforeAll(async () => {
+      const { data, error } = await coachA.rpc("create_player", {
+        p_category_id: categoryA,
+        p_first_name: "Luz",
+        p_last_name: "Baja",
+        p_birth_year: null,
+        p_joined_on: "2026-03-02",
+      });
+      if (error) throw error;
+      playerId = data as string;
+      const membership = await coachA
+        .from("category_players")
+        .select("id")
+        .eq("player_id", playerId)
+        .single();
+      membershipId = membership.data!.id;
+    });
+
+    test("AC1: el check rechaza una baja anterior al alta", async () => {
+      const { error } = await coachA
+        .from("category_players")
+        .update({ left_on: "2026-03-01" })
+        .eq("id", membershipId);
+      expect(error?.code).toBe("23514");
+    });
+
+    test("una baja válida cierra la pertenencia", async () => {
+      const { error } = await coachA
+        .from("category_players")
+        .update({ left_on: "2026-05-15" })
+        .eq("id", membershipId);
+      expect(error).toBeNull();
+    });
+
+    test("volver a cargar con fecha anterior a la baja se rechaza (superposición)", async () => {
+      const { error } = await coachA.from("category_players").insert({
+        category_id: categoryA,
+        player_id: playerId,
+        joined_on: "2026-05-15",
+      });
+      expect(error?.code).toBe("23P01");
+    });
+
+    test("AC3: volver a cargar después de la baja crea otra pertenencia; queda el hueco", async () => {
+      const { error } = await coachA.from("category_players").insert({
+        category_id: categoryA,
+        player_id: playerId,
+        joined_on: "2026-09-07",
+      });
+      expect(error).toBeNull();
+
+      const { data } = await coachA
+        .from("category_players")
+        .select("joined_on, left_on")
+        .eq("player_id", playerId)
+        .order("joined_on");
+      expect(data).toEqual([
+        { joined_on: "2026-03-02", left_on: "2026-05-15" },
+        { joined_on: "2026-09-07", left_on: null },
+      ]);
+    });
+  });
+
   describe("RLS", () => {
     test("B no ve los jugadores ni las pertenencias de A", async () => {
       const players = await coachB.from("players").select("id");

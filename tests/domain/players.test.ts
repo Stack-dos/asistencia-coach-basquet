@@ -1,12 +1,65 @@
 import { describe, expect, test } from "vitest";
 import {
+  addDays,
   formatDate,
   isSameName,
   isValidIsoDate,
   joinedOnError,
+  leftOnError,
   parsePlayerInput,
+  rejoinDateError,
   type PlayerFields,
 } from "@/domain/players";
+
+describe("addDays", () => {
+  test("suma días cruzando fin de mes y de año", () => {
+    expect(addDays("2026-05-15", 1)).toBe("2026-05-16");
+    expect(addDays("2026-02-28", 1)).toBe("2026-03-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+  });
+});
+
+describe("leftOnError (US-204)", () => {
+  test("una baja dentro de la temporada y desde el alta es válida", () => {
+    expect(leftOnError("2026-05-15", "2026-03-02", 2026)).toBeNull();
+    expect(leftOnError("2026-03-02", "2026-03-02", 2026)).toBeNull(); // el mismo día
+  });
+
+  test("AC1: una baja anterior al alta se rechaza", () => {
+    expect(leftOnError("2026-03-01", "2026-03-02", 2026)).toMatch(
+      /anterior al alta \(02\/03\/2026\)/,
+    );
+  });
+
+  test("una baja fuera de la temporada o inexistente se rechaza", () => {
+    expect(leftOnError("2027-01-10", "2026-03-02", 2026)).toMatch(/temporada/);
+    expect(leftOnError("2026-02-30", "2026-01-02", 2026)).toMatch(
+      /no es válida/,
+    );
+  });
+});
+
+describe("rejoinDateError (US-204)", () => {
+  test("AC3: una vuelta posterior a la baja es válida", () => {
+    expect(rejoinDateError("2026-09-07", "2026-05-15", 2026)).toBeNull();
+    expect(rejoinDateError("2026-05-16", "2026-05-15", 2026)).toBeNull();
+  });
+
+  test("el mismo día de la baja o antes se superpone y se rechaza", () => {
+    expect(rejoinDateError("2026-05-15", "2026-05-15", 2026)).toMatch(
+      /posterior a la baja \(15\/05\/2026\)/,
+    );
+    expect(rejoinDateError("2026-04-01", "2026-05-15", 2026)).toMatch(
+      /posterior a la baja/,
+    );
+  });
+
+  test("fuera de la temporada se rechaza", () => {
+    expect(rejoinDateError("2027-02-01", "2026-05-15", 2026)).toMatch(
+      /temporada 2026/,
+    );
+  });
+});
 
 const valid: PlayerFields = {
   firstName: "Juan",
