@@ -3,23 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clubErrorMessage } from "@/domain/club-errors";
-import { normalizeName } from "@/domain/names";
 import { createClient } from "@/lib/supabase/server";
+import { readName } from "./form";
 
 export type ClubState = { error?: string };
 
 // "layout" refresca /clubes y todas las páginas debajo (/clubes/[clubId]).
 function refreshClubs() {
   revalidatePath("/clubes", "layout");
-}
-
-// El FormData llega del navegador: el campo puede faltar o venir como archivo.
-function readName(formData: FormData) {
-  const name = formData.get("name");
-  if (typeof name !== "string") {
-    return { ok: false as const, error: clubErrorMessage(undefined) };
-  }
-  return normalizeName(name);
 }
 
 export async function createClub(
