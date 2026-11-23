@@ -12,17 +12,19 @@ type ButtonProps = ComponentProps<"button"> & {
   variant?: keyof typeof VARIANTS;
 };
 
-// Recibe todo lo que acepta un <button> (type, disabled, onClick…) y lo pasa con {...rest}.
 // min-h-11 = 44 px: tamaño mínimo cómodo para tocar con el dedo.
+// Exportada para dar estilo de botón a un <Link> (navegar no es trabajo de un <button>).
+export function buttonClasses(variant: keyof typeof VARIANTS = "primary") {
+  return `inline-flex min-h-11 items-center justify-center rounded-lg px-4 font-semibold no-underline disabled:pointer-events-none disabled:opacity-45 ${VARIANTS[variant]}`;
+}
+
+// Recibe todo lo que acepta un <button> (type, disabled, onClick…) y lo pasa con {...rest}.
 export function Button({
   variant = "primary",
   className = "",
   ...rest
 }: ButtonProps) {
   return (
-    <button
-      className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 font-semibold disabled:pointer-events-none disabled:opacity-45 ${VARIANTS[variant]} ${className}`}
-      {...rest}
-    />
+    <button className={`${buttonClasses(variant)} ${className}`} {...rest} />
   );
 }
