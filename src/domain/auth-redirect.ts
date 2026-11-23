@@ -1,6 +1,8 @@
 const HOME = "/clubes";
 const LOGIN = "/login";
 
+const PUBLIC_PAGES = ["/", "/guia"];
+
 // Páginas para usuarios sin sesión: si ya hay sesión, no tiene sentido mostrarlas.
 const AUTH_PAGES = ["/login", "/registro", "/recuperar"];
 
@@ -15,8 +17,8 @@ export function getAuthRedirect(
   // Links de los emails (confirmación, recuperación): tienen que funcionar siempre.
   if (pathname.startsWith("/auth/")) return null;
 
-  // Landing: pública para todos; ella misma adapta los botones según la sesión.
-  if (pathname === "/") return null;
+  // Landing y guía: públicas para todos, con o sin sesión.
+  if (PUBLIC_PAGES.includes(pathname)) return null;
 
   if (AUTH_PAGES.includes(pathname)) return isLoggedIn ? HOME : null;
 

@@ -7,6 +7,8 @@ describe("getAuthRedirect", () => {
     // Landing: pública para todos.
     ["/", false, null],
     ["/", true, null],
+    ["/guia", false, null],
+    ["/guia", true, null],
 
     ["/login", false, null],
     ["/login", true, "/clubes"],
@@ -33,6 +35,7 @@ describe("getAuthRedirect", () => {
       "/authentication",
       "/auth",
       "/LOGIN",
+      "/guias",
       "/clubes/123/categorias",
     ])("%s sin sesión → /login", (pathname) => {
       expect(getAuthRedirect(pathname, false)).toBe("/login");
