@@ -50,12 +50,15 @@ Pilares:
 - Vista mensual por categoría (jugadores × clases), equivalente a la hoja de Excel.
 - Estadísticas: jugadores por categoría mes a mes, total por club, % de nuevos (por categoría
   y total del club), abandonos, clases por mes y por año, ranking de asistencia con %.
+- Landing pública y guía de uso paso a paso (US-206).
+- PDF de la categoría: jugadores activos, asistencias y estadísticas (US-503, D-14).
+- Pruebas de carga y observabilidad de la web y la base (US-504, US-505, D-27).
 
 **Fuera de alcance (v1.0):**
 
 - Compartir clubes/categorías entre varios entrenadores (ver D-04).
 - Importar planillas de Excel existentes (ver D-14).
-- Exportar a Excel/PDF (ver D-14).
+- Exportar a Excel (ver D-14). El PDF de la categoría sí entra (US-503).
 - Clases recurrentes / calendario automático de clases (ver D-08).
 - Estado "ausente justificado" (ver D-09).
 - Modo offline (ver D-15).
@@ -285,6 +288,8 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 | Rendimiento    | Carga de pantallas de estadísticas con 1 año de datos de 4 categorías.                      | < 2 s en 4G.                   |
 | Seguridad      | RLS activo en todas las tablas; tests que verifican que un entrenador no lee datos de otro. | 0 tablas sin RLS.              |
 | Seguridad      | La clave `service_role` nunca llega al navegador.                                           | Verificado en revisión.        |
+| Rendimiento    | Prueba de carga k6 sobre estadísticas y toma de asistencia (US-504).                        | p95 < 2 s, errores < 1 %.      |
+| Observabilidad | Errores de producción (servidor y navegador) registrados con contexto (US-505).             | 100% en Sentry.                |
 | Disponibilidad | La que dan los planes de Vercel y Supabase.                                                 | Sin objetivo propio en v1.     |
 | Accesibilidad  | Controles con etiqueta, contraste AA, operables con teclado.                                | Lighthouse Accesibilidad ≥ 90. |
 | Costo          | Funcionar dentro de los planes gratuitos de Vercel y Supabase.                              | USD 0/mes en v1.               |
@@ -295,39 +300,42 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 ### 9.1 Decisiones tomadas en este documento (a validar)
 
-| ID   | Tema                                     | Decisión                                    | Estado      |
-| ---- | ---------------------------------------- | ------------------------------------------- | ----------- |
-| D-01 | Métricas de éxito                        | Sección 1.4                                 | A controlar |
-| D-02 | Stack                                    | Next.js + TS + Tailwind en Vercel, Supabase | Confirmada  |
-| D-03 | NFR                                      | Mobile-first, costo 0                       | A controlar |
-| D-04 | Clubes compartidos                       | No, un club = un entrenador                 | A controlar |
-| D-05 | Jugador nuevo                            | Primera pertenencia en el club              | Confirmada  |
-| D-06 | Abandono                                 | Baja manual con fecha; fin de año no cuenta | Confirmada  |
-| D-07 | Período anual                            | Año calendario = temporada                  | Confirmada  |
-| D-08 | Clases recurrentes                       | No, carga manual por fecha                  | A controlar |
-| D-09 | Ausencias                                | Sólo se guardan presentes; sin justificados | A controlar |
-| D-10 | Jugador en varias categorías a la vez    | Sí; en el club cuenta una vez               | A controlar |
-| D-11 | Dos clases el mismo día                  | No                                          | A controlar |
-| D-12 | Idioma del código                        | Inglés en código/base, español en UI/docs   | A controlar |
-| D-13 | Prácticas de ingeniería                  | Sección 6                                   | A controlar |
-| D-14 | Importar/exportar Excel                  | Fuera de v1                                 | A controlar |
-| D-15 | Offline                                  | Fuera de v1                                 | A controlar |
-| D-16 | Borrado                                  | RN-05 y RN-07                               | A controlar |
-| D-17 | Autenticación                            | Email + contraseña                          | A controlar |
-| D-18 | Ranking: período                         | Mes, año o rango, por categoría             | A controlar |
-| D-19 | Versionado y ramas                       | Sección 13                                  | A controlar |
-| D-20 | "% nuevos en total"                      | Total del club, no de todos los clubes      | A controlar |
-| D-21 | Jugador que vuelve después de una baja   | Pertenencia nueva; no cuenta como nuevo     | Confirmada  |
-| D-22 | Corregir fechas con asistencias cargadas | Se rechaza el cambio                        | A controlar |
-| D-23 | Temporadas                               | `season_year` en cada categoría             | Confirmada  |
-| D-24 | Pase de categoría                        | Persona + pertenencias (`category_players`) | Confirmada  |
-| D-25 | Año de nacimiento                        | Opcional, informativo; asignación manual    | Confirmada  |
+| ID   | Tema                                     | Decisión                                                                | Estado      |
+| ---- | ---------------------------------------- | ----------------------------------------------------------------------- | ----------- |
+| D-01 | Métricas de éxito                        | Sección 1.4                                                             | A controlar |
+| D-02 | Stack                                    | Next.js + TS + Tailwind en Vercel, Supabase                             | Confirmada  |
+| D-03 | NFR                                      | Mobile-first, costo 0                                                   | A controlar |
+| D-04 | Clubes compartidos                       | No, un club = un entrenador                                             | A controlar |
+| D-05 | Jugador nuevo                            | Primera pertenencia en el club                                          | Confirmada  |
+| D-06 | Abandono                                 | Baja manual con fecha; fin de año no cuenta                             | Confirmada  |
+| D-07 | Período anual                            | Año calendario = temporada                                              | Confirmada  |
+| D-08 | Clases recurrentes                       | No, carga manual por fecha                                              | A controlar |
+| D-09 | Ausencias                                | Sólo se guardan presentes; sin justificados                             | A controlar |
+| D-10 | Jugador en varias categorías a la vez    | Sí; en el club cuenta una vez                                           | A controlar |
+| D-11 | Dos clases el mismo día                  | No                                                                      | A controlar |
+| D-12 | Idioma del código                        | Inglés en código/base, español en UI/docs                               | A controlar |
+| D-13 | Prácticas de ingeniería                  | Sección 6                                                               | A controlar |
+| D-14 | Importar/exportar Excel; exportar PDF    | Excel fuera de v1; PDF de categoría en v1                               | Confirmada  |
+| D-15 | Offline                                  | Fuera de v1                                                             | A controlar |
+| D-16 | Borrado                                  | RN-05 y RN-07                                                           | A controlar |
+| D-17 | Autenticación                            | Email + contraseña                                                      | A controlar |
+| D-18 | Ranking: período                         | Mes, año o rango, por categoría                                         | A controlar |
+| D-19 | Versionado y ramas                       | Sección 13                                                              | A controlar |
+| D-20 | "% nuevos en total"                      | Total del club, no de todos los clubes                                  | A controlar |
+| D-21 | Jugador que vuelve después de una baja   | Pertenencia nueva; no cuenta como nuevo                                 | Confirmada  |
+| D-22 | Corregir fechas con asistencias cargadas | Se rechaza el cambio                                                    | A controlar |
+| D-23 | Temporadas                               | `season_year` en cada categoría                                         | Confirmada  |
+| D-24 | Pase de categoría                        | Persona + pertenencias (`category_players`)                             | Confirmada  |
+| D-25 | Año de nacimiento                        | Opcional, informativo; asignación manual                                | Confirmada  |
+| D-26 | Landing y guía de uso                    | `/` y `/guia` públicas, guía estática                                   | Confirmada  |
+| D-27 | Pruebas de carga y observabilidad        | k6 + Grafana, Sentry, Speed Insights, pg_stat_statements; planes gratis | Confirmada  |
 
 ### 9.2 ADRs pendientes
 
 | ADR    | Pregunta                                           | Bloquea |
 | ------ | -------------------------------------------------- | ------- |
 | ADR-03 | Confirmar modelo de asistencia (D-09, D-11, D-22). | Hito 3  |
+| ADR-04 | Cómo se genera el PDF de la categoría (US-503).    | US-503  |
 
 ### 9.3 ADRs resueltos
 
@@ -431,7 +439,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 - **Objetivo del hito:** el entrenador carga sus clubes, categorías y jugadores, y puede
   pasar de una temporada a la siguiente.
-- **Épicas:** 2 · **Historias:** 5 · **Esfuerzo total estimado:** ~14 días·persona
+- **Épicas:** 3 · **Historias:** 6 · **Esfuerzo total estimado:** ~15 días·persona
 
 #### Épica H2-E1: Clubes y categorías
 
@@ -601,6 +609,36 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 > a mano. **Por qué:** los años de cada categoría cambian de forma irregular entre temporadas;
 > la sugerencia automática queda en el roadmap.
 
+#### Épica H2-E3: Bienvenida y ayuda
+
+#### US-206 — Landing y guía de uso
+
+- **Esfuerzo:** S (1 día) · **Prioridad:** Media · **Dependencias:** US-205
+- **Objetivo Funcional:** que un entrenador que llega por primera vez entienda para qué sirve
+  la app y en qué orden se usa.
+- **Narrativa:** Como entrenador nuevo, quiero una página de bienvenida y una guía paso a paso,
+  para saber por dónde empezar sin que nadie me explique.
+- **Detalle técnico:**
+  - `/` deja de redirigir: es una landing pública con el fin de la app y botones según la
+    sesión ("Crear cuenta" / "Ingresar" o "Ir a mis clubes").
+  - `/guia`: página pública y estática con los pasos club → categorías → jugadores → bajas →
+    inicio de temporada. Link a la guía en la landing, en el header privado y en las páginas
+    de acceso.
+  - `getAuthRedirect`: `/` y `/guia` pasan con o sin sesión (D-26).
+  - La guía muestra sólo lo que ya funciona: US-301 y US-302 suman su paso al terminar.
+- **Criterios de Aceptación:**
+  - AC1: sin sesión, `/` muestra la landing con "Crear cuenta" e "Ingresar".
+  - AC2: con sesión, `/` muestra "Ir a mis clubes".
+  - AC3: `/guia` se ve con y sin sesión, y se llega desde todas las pantallas.
+- **Entidades:** ninguna.
+- **Testing Mínimo:** unitario de `getAuthRedirect` para `/` y `/guia`.
+- **Archivos a crear:**
+
+  ```txt
+  src/app/page.tsx
+  src/app/guia/page.tsx
+  ```
+
 ---
 
 ### Hito 3 — Clases y asistencia (v0.3)
@@ -625,6 +663,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - `src/domain/months.ts`: `monthRange(yyyyMm)`, `previousMonth`, `nextMonth`.
   - Componente `MonthPicker` (mes anterior / siguiente). Se reutiliza en US-303 y Hito 4.
   - Pestaña "Clases" de la categoría: lista de fechas del mes seleccionado.
+  - Sumar a `/guia` el paso "Planificar las clases del mes" (US-206).
 - **Criterios de Aceptación:**
   - AC1: se agrega una clase eligiendo la fecha (por defecto hoy).
   - AC2: una fecha repetida en la misma categoría muestra "Ya hay una clase ese día".
@@ -672,6 +711,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - Botón "Agregar jugador" que abre `PlayerForm` (US-203) con fecha de alta = fecha de la
     clase; al guardarse aparece marcado presente. Si la persona ya existe en el club, se le
     crea sólo la pertenencia (no cuenta como nuevo).
+  - Sumar a `/guia` el paso "Tomar asistencia" (US-206).
 - **Criterios de Aceptación:**
   - AC1: la lista muestra sólo jugadores activos en la fecha de la clase.
   - AC2: guardar registra presentes; los no marcados quedan como ausentes (D-09).
@@ -934,7 +974,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 ### Hito 5 — Lanzamiento (v1.0)
 
 - **Objetivo del hito:** dejar la app lista para uso real del autor y de otros entrenadores.
-- **Épicas:** 1 · **Historias:** 2 · **Esfuerzo total estimado:** ~6 días·persona
+- **Épicas:** 3 · **Historias:** 5 · **Esfuerzo total estimado:** ~13 días·persona
 
 #### Épica H5-E1: Calidad y release
 
@@ -962,7 +1002,8 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 #### US-502 — Test end-to-end del flujo principal y release 1.0
 
-- **Esfuerzo:** M (3 días) · **Prioridad:** Alta · **Dependencias:** US-501
+- **Esfuerzo:** M (3 días) · **Prioridad:** Alta · **Dependencias:** US-501, US-503, US-504,
+  US-505
 - **Objetivo Funcional:** asegurar el flujo completo antes de publicar v1.0.
 - **Narrativa:** Como desarrollador, quiero un test automático del recorrido principal, para
   publicar v1.0 sin romper lo esencial.
@@ -983,6 +1024,94 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   playwright.config.ts
   tests/e2e/flujo-principal.spec.ts
   CHANGELOG.md
+  ```
+
+#### Épica H5-E2: Reportes
+
+#### US-503 — PDF de la categoría
+
+- **Esfuerzo:** M (3 días) · **Prioridad:** Media · **Dependencias:** US-303, US-402, US-403
+- **Objetivo Funcional:** llevarse la información de una categoría fuera de la app (para el
+  club, los padres o un archivo propio), como antes se imprimía la hoja de Excel.
+- **Narrativa:** Como entrenador, quiero descargar un PDF de la categoría con los jugadores
+  activos, sus asistencias y las estadísticas, para presentarlo o archivarlo.
+- **Detalle técnico:**
+  - Botón "Descargar PDF" en la categoría, con el período elegido (mes o temporada).
+  - Contenido: jugadores activos; grilla de asistencia (jugadores × clases) con % por jugador;
+    tabla de estadísticas de US-402 y ranking de US-403.
+  - Los datos salen de las mismas funciones de `src/data/` y vistas del Hito 4: el PDF no
+    calcula nada propio.
+  - Método de generación a definir en **ADR-04**. Alternativas: hoja de estilos de impresión
+    (`@media print`) + "Guardar como PDF" del navegador (sin dependencias); librería que arma
+    el PDF en el servidor (ej. `@react-pdf/renderer`); navegador headless en el servidor
+    (fiel a la pantalla, pero pesado para el plan gratis de Vercel).
+- **Criterios de Aceptación:**
+  - AC1: el PDF lista sólo los jugadores activos en el período elegido.
+  - AC2: los porcentajes y totales coinciden con la grilla y las estadísticas en pantalla.
+  - AC3: con 25 jugadores y 12 clases en el mes, la grilla entra en una hoja A4 apaisada.
+  - AC4: un entrenador no puede generar el PDF de una categoría ajena (RLS).
+- **Entidades:** `category_players`, `sessions`, `attendances`, vistas de estadísticas.
+- **Testing Mínimo:** integración: el contenido del reporte coincide con las vistas; test de
+  aislamiento entre entrenadores.
+
+#### Épica H5-E3: Rendimiento y observabilidad
+
+#### US-504 — Pruebas de carga con k6 y Grafana
+
+- **Esfuerzo:** S (2 días) · **Prioridad:** Media · **Dependencias:** US-402, US-302
+- **Objetivo Funcional:** saber cuánta carga aguanta la app y detectar consultas lentas antes
+  de que las sufran los entrenadores.
+- **Narrativa:** Como desarrollador, quiero simular muchos entrenadores usando la app a la vez,
+  para verificar los NFR de rendimiento con números y no a ojo.
+- **Detalle técnico:**
+  - Scripts de k6 (JavaScript) en `tests/load/`: login, abrir estadísticas de una categoría,
+    guardar una asistencia. Umbrales (`thresholds`) del NFR: p95 < 2 s y errores < 1 %.
+  - Se corren contra Supabase local + `next start` o contra un preview de Vercel, nunca
+    contra producción. Los planes gratis tienen límites de uso: carga moderada y corta.
+  - Resultados en Grafana: Grafana Cloud k6 (plan gratis) o Grafana local con Docker.
+  - Job de CI manual (`workflow_dispatch`), no en cada PR.
+- **Criterios de Aceptación:**
+  - AC1: los escenarios corren con un comando documentado en `docs/`.
+  - AC2: el reporte muestra p95 y tasa de errores por escenario, visible en Grafana.
+  - AC3: si un umbral no se cumple, k6 termina con error (y el job de CI falla).
+- **Entidades:** todas (datos de prueba generados por un seed).
+- **Testing Mínimo:** los propios escenarios de k6.
+- **Archivos a crear:**
+
+  ```txt
+  tests/load/estadisticas.js
+  tests/load/asistencia.js
+  .github/workflows/load.yml
+  docs/pruebas/carga.md
+  ```
+
+#### US-505 — Observabilidad de la web y la base
+
+- **Esfuerzo:** S (2 días) · **Prioridad:** Media · **Dependencias:** US-501
+- **Objetivo Funcional:** enterarse de los errores y la lentitud en producción sin esperar a
+  que un entrenador avise.
+- **Narrativa:** Como desarrollador, quiero ver los errores, los tiempos de carga reales y las
+  consultas lentas, para corregirlos antes de que molesten.
+- **Detalle técnico:**
+  - **Sentry** (plan gratis): errores del servidor y del navegador con stack trace y ruta,
+    vía `instrumentation.ts` de Next.js. Sin datos personales de jugadores en los eventos.
+  - **Vercel Speed Insights**: tiempos de carga reales (Core Web Vitals) por página.
+  - **`pg_stat_statements`** (extensión de PostgreSQL incluida en Supabase): consultas más
+    lentas y más frecuentes, desde el panel "Query Performance" de Supabase.
+  - Opcional: métricas de Postgres de Supabase (endpoint compatible con Prometheus) en el mismo
+    Grafana de US-504.
+- **Criterios de Aceptación:**
+  - AC1: un error forzado en un preview aparece en Sentry con su ruta.
+  - AC2: Speed Insights muestra datos de producción.
+  - AC3: `docs/` explica dónde mirar cada cosa y qué hacer con un hallazgo.
+  - AC4: todo funciona dentro de los planes gratis (NFR de costo).
+- **Entidades:** ninguna.
+- **Testing Mínimo:** verificación manual de AC1 y AC2, documentada en el PR.
+- **Archivos a crear:**
+
+  ```txt
+  src/instrumentation.ts
+  docs/observabilidad.md
   ```
 
 ---
@@ -1047,7 +1176,7 @@ Los tiempos asumen un único desarrollador sin guardia.
 
 **No es compromiso de entrega.** Ideas ordenadas por valor estimado:
 
-1. Importar planillas de Excel existentes y exportar estadísticas (D-14).
+1. Importar planillas de Excel existentes y exportar a Excel (D-14).
 2. Sugerencia de baja por inasistencias consecutivas (D-06).
 3. Clases recurrentes según días de entrenamiento (D-08).
 4. Ausente justificado (D-09).
@@ -1107,3 +1236,15 @@ El documento se revisó cuatro veces después del primer borrador. Correcciones 
   por hito: H2 ~14 y H4 ~14 días·persona.
 - D-10 cambió: un jugador puede estar en dos categorías a la vez y el total del club cuenta
   personas distintas (US-404 AC1).
+
+**Iteración 5 — bienvenida, reportes y observabilidad (2026-11-23):**
+
+- US-206 (Hito 2): landing pública en `/` y guía de uso en `/guia` (D-26). US-301 y US-302
+  suman su paso a la guía.
+- US-503 (Hito 5): PDF de la categoría. D-14 cambió: el PDF entra en v1, Excel sigue afuera.
+  El método de generación queda pendiente en ADR-04.
+- US-504 y US-505 (Hito 5): k6 + Grafana para carga; Sentry, Speed Insights y
+  `pg_stat_statements` para observabilidad, en planes gratis (D-27). Nuevos NFR de rendimiento
+  y observabilidad.
+- US-502 (release) ahora depende de US-503, US-504 y US-505. Carga por hito: H2 ~15 y
+  H5 ~13 días·persona.
