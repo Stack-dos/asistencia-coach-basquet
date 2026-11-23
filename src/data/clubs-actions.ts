@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { clubErrorMessage } from "@/domain/club-errors";
 import { normalizeName } from "@/domain/names";
 import { createClient } from "@/lib/supabase/server";
@@ -65,5 +66,6 @@ export async function deleteClub(clubId: string): Promise<ClubState> {
   if (error) return { error: clubErrorMessage(error.code) };
 
   refreshClubs();
-  return {};
+  // Se borra desde /clubes/[clubId], que deja de existir: volver al listado.
+  redirect("/clubes");
 }
