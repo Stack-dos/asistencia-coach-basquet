@@ -456,16 +456,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Entidades:** `clubs`.
 - **Testing Mínimo:** unitario de `normalizeName`; integración RLS: usuario B no puede leer ni
   modificar un club de A.
-- **Archivos a crear:**
-
-  ```txt
-  supabase/migrations/0001_clubs.sql
-  src/domain/names.ts
-  src/data/clubs.ts
-  src/app/(app)/clubes/page.tsx (actualizar)
-  src/app/(app)/clubes/[clubId]/page.tsx
-  tests/integration/clubs.rls.test.ts
-  ```
 
 #### US-202 — Gestionar categorías de un club
 
@@ -497,10 +487,14 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0002_categories.sql
+  supabase/migrations/0003_categories.sql
   src/data/categories.ts
+  src/data/categories-actions.ts
+  src/domain/season.ts
   src/app/(app)/clubes/[clubId]/categorias/[categoryId]/layout.tsx
   src/app/(app)/clubes/[clubId]/categorias/[categoryId]/page.tsx
+  src/app/(app)/clubes/[clubId]/categorias/[categoryId]/{jugadores,clases,estadisticas}/page.tsx
+  tests/db/categories.test.sql
   tests/integration/categories.test.ts
   ```
 
@@ -540,16 +534,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Testing Mínimo:** unitario de validación del formulario; integración de RLS sobre
   `players` y `category_players`; integración: la restricción de exclusión rechaza dos
   pertenencias superpuestas en la misma categoría.
-- **Archivos a crear:**
-
-  ```txt
-  supabase/migrations/0003_players.sql
-  src/domain/players.ts
-  src/data/players.ts
-  src/components/PlayerForm.tsx
-  src/app/(app)/clubes/[clubId]/categorias/[categoryId]/jugadores/page.tsx
-  tests/unit/players.test.ts
-  ```
 
 #### US-204 — Baja (abandono) y reactivación de jugadores
 
@@ -662,7 +646,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0004_sessions.sql
+  supabase/migrations/0005_sessions.sql
   src/domain/months.ts
   src/data/sessions.ts
   src/components/MonthPicker.tsx
@@ -708,7 +692,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0005_attendances.sql
+  supabase/migrations/0006_attendances.sql
   src/data/attendances.ts
   src/app/(app)/clubes/[clubId]/categorias/[categoryId]/clases/[sessionId]/page.tsx
   src/components/AttendanceToggle.tsx
@@ -776,7 +760,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0006_attendance_integrity.sql
+  supabase/migrations/0007_attendance_integrity.sql
   tests/integration/attendance-integrity.test.ts
   ```
 
@@ -821,7 +805,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0007_stats_views.sql
+  supabase/migrations/0008_stats_views.sql
   supabase/seed.sql
   src/data/stats.ts
   tests/integration/stats.test.ts

@@ -1,63 +1,27 @@
-import { execSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { localSupabase, signedInCoach } from "./helpers";
 
 // Test de integración: usa la API real de Supabase LOCAL (requiere `npx supabase start`).
 // Complementa a tests/db/clubs.test.sql: acá probamos el camino de la app (supabase-js + sesión).
 
-// Las claves locales salen de `supabase status`; no sirven fuera de tu máquina / CI.
-function localSupabase() {
-  const output = execSync("npx supabase status -o env", { encoding: "utf8" });
-  const env = Object.fromEntries(
-    [...output.matchAll(/^(\w+)="(.*)"$/gm)].map(([, key, value]) => [
-      key,
-      value,
-    ]),
-  );
-  return {
-    url: env.API_URL,
-    publishableKey: env.PUBLISHABLE_KEY,
-    secretKey: env.SECRET_KEY,
-  };
-}
-
-const PASSWORD = "test-password-123";
-
 describe("RLS de clubs", () => {
-  let admin: SupabaseClient; // con la secret key: saltea RLS. Sólo para preparar y limpiar.
+  let admin: SupabaseClient;
   let coachA: SupabaseClient;
   let coachB: SupabaseClient;
+  let coachAId: string;
   const userIds: string[] = [];
   let clubId: string;
 
-  // Crea un usuario confirmado y devuelve un cliente con su sesión iniciada.
-  async function signedInCoach(url: string, publishableKey: string) {
-    const email = `${randomUUID()}@test.local`; // único: el test se puede repetir
-    const { data, error } = await admin.auth.admin.createUser({
-      email,
-      password: PASSWORD,
-      email_confirm: true,
-    });
-    if (error) throw error;
-    userIds.push(data.user.id);
-
-    const client = createClient(url, publishableKey, {
-      auth: { persistSession: false },
-    });
-    const { error: signInError } = await client.auth.signInWithPassword({
-      email,
-      password: PASSWORD,
-    });
-    if (signInError) throw signInError;
-    return client;
-  }
-
   beforeAll(async () => {
-    const { url, publishableKey, secretKey } = localSupabase();
-    admin = createClient(url, secretKey, { auth: { persistSession: false } });
-    coachA = await signedInCoach(url, publishableKey);
-    coachB = await signedInCoach(url, publishableKey);
+    const local = localSupabase();
+    admin = local.admin;
+    const a = await signedInCoach(admin, local.url, local.publishableKey);
+    const b = await signedInCoach(admin, local.url, local.publishableKey);
+    userIds.push(a.id, b.id);
+    coachA = a.client;
+    coachAId = a.id;
+    coachB = b.client;
 
     const { data, error } = await coachA
       .from("clubs")
@@ -105,10 +69,9 @@ describe("RLS de clubs", () => {
   });
 
   test("B no puede crear un club a nombre de A", async () => {
-    const { data: userA } = await coachA.auth.getUser();
     const { error } = await coachB
       .from("clubs")
-      .insert({ coach_id: userA.user!.id, name: "Robado" });
+      .insert({ coach_id: coachAId, name: "Robado" });
     expect(error?.code).toBe("42501");
   });
 });

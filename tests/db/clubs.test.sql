@@ -2,7 +2,7 @@
 -- Todo corre dentro de una transacción que se deshace al final: no deja datos.
 begin;
 
-select plan(9);
+select plan(11);
 
 -- Arrange: dos entrenadores ficticios.
 insert into auth.users (id, email) values
@@ -15,6 +15,17 @@ select is(
   (select relrowsecurity from pg_class where oid = 'public.clubs'::regclass),
   true,
   'clubs tiene RLS habilitado'
+);
+
+-- Privilegios (0002): explícitos, así local y producción quedan iguales.
+select table_privs_are(
+  'public', 'clubs', 'anon', array[]::text[],
+  'anon no tiene ningún privilegio sobre clubs'
+);
+select table_privs_are(
+  'public', 'clubs', 'authenticated',
+  array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'authenticated sólo puede select, insert, update y delete en clubs'
 );
 
 -- Actuar como el entrenador A (lo mismo que hace Supabase con el JWT de la sesión).
