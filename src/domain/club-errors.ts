@@ -26,6 +26,18 @@ export function leaveErrorMessage(code: string | undefined): string {
   return UNEXPECTED;
 }
 
+// US-205: el insert es de varios jugadores a la vez, así que el mensaje no puede nombrar a uno.
+export function assignErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "23P01": // exclusion_violation: alguno ya estaba en esa categoría
+      return "Alguno de los jugadores ya está en esa categoría. Recargá la página y probá de nuevo.";
+    case "23514": // check_violation: fecha fuera de la temporada o jugador de otro club
+      return "La fecha de alta no es válida para la temporada.";
+    default:
+      return UNEXPECTED;
+  }
+}
+
 export function categoryErrorMessage(code: string | undefined): string {
   // categories_club_id_name_season_year_key
   if (code === UNIQUE_VIOLATION)
