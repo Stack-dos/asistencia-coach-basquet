@@ -1,10 +1,19 @@
 import { describe, expect, test } from "vitest";
 import {
+  assignErrorMessage,
   categoryErrorMessage,
   clubErrorMessage,
   leaveErrorMessage,
   playerErrorMessage,
 } from "@/domain/club-errors";
+
+describe("assignErrorMessage", () => {
+  test("23P01: alguno ya estaba; 23514: fecha inválida; otro: genérico", () => {
+    expect(assignErrorMessage("23P01")).toMatch(/ya está en esa categoría/);
+    expect(assignErrorMessage("23514")).toMatch(/fecha de alta/);
+    expect(assignErrorMessage(undefined)).toMatch(/error inesperado/);
+  });
+});
 
 describe("leaveErrorMessage", () => {
   test("check_violation (23514): fecha de baja inválida", () => {
