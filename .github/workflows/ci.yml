@@ -28,3 +28,32 @@ jobs:
       - run: npx supabase stop --all --no-backup || true
       - run: npx supabase start
       - run: npm test
+      # Tests de la base en SQL (pgTAP).
+      - run: npx supabase test db tests/db
+
+  # Aplica en producción las migraciones nuevas. Sólo en push a main y si los checks pasaron.
+  deploy-db:
+    needs: checks
+    if: github.event_name == 'push'
+    # Los secretos viven en el environment "production" (sólo accesible desde main).
+    environment: production
+    runs-on: ubuntu-latest
+    # Nunca dos deploys de base a la vez; el segundo espera al primero.
+    concurrency:
+      group: deploy-db
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: >-
+          npx supabase db push --yes
+          --remote=${{ secrets.SUPABASE_PROJECT_ID }}
+          --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
