@@ -4,8 +4,9 @@ import { getAuthRedirect } from "@/domain/auth-redirect";
 describe("getAuthRedirect", () => {
   test.each([
     // [pathname, isLoggedIn, esperado]
-    ["/", false, "/login"],
-    ["/", true, "/clubes"],
+    // Landing: pública para todos.
+    ["/", false, null],
+    ["/", true, null],
 
     ["/login", false, null],
     ["/login", true, "/clubes"],

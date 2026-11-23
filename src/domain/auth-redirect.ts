@@ -15,7 +15,8 @@ export function getAuthRedirect(
   // Links de los emails (confirmación, recuperación): tienen que funcionar siempre.
   if (pathname.startsWith("/auth/")) return null;
 
-  if (pathname === "/") return isLoggedIn ? HOME : LOGIN;
+  // Landing: pública para todos; ella misma adapta los botones según la sesión.
+  if (pathname === "/") return null;
 
   if (AUTH_PAGES.includes(pathname)) return isLoggedIn ? HOME : null;
 
