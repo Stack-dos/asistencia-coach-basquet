@@ -166,6 +166,33 @@ misma condición para ambos. Escribirlos explícitos es más claro.
 `insert` que no pasa el `with check` sí da error (`42501`, _new row violates row-level security
 policy_). Por eso los tests de RLS verifican cantidades de filas, no sólo errores.
 
+**Privilegios (`grant`) antes que RLS.** Postgres controla el acceso en dos capas: primero
+mira si el rol tiene **privilegio** sobre la tabla (si no, `42501` _permission denied for
+table_) y recién después aplica RLS a las filas. Supabase local le da todos los privilegios a
+`anon` y `authenticated` por defecto; un proyecto nuevo en producción, no (pasó con `clubs` en
+US-201). Por eso cada tabla nueva lleva los suyos explícitos y un test `table_privs_are`:
+
+```sql
+revoke all on table public.notes from anon, authenticated;
+grant select, insert, update, delete on table public.notes to authenticated;
+```
+
+**RLS a través de otra tabla.** Si la tabla no tiene `coach_id` (ej. `categories` cuelga de
+`clubs`), la política llama a una función que busca al dueño:
+
+```sql
+create function public.owns_club(p_club_id uuid)
+returns boolean language sql stable security invoker set search_path = ''
+as $$ select exists (select 1 from public.clubs
+                     where id = p_club_id and coach_id = (select auth.uid())); $$;
+
+create policy "..." on public.categories for all to authenticated
+  using (public.owns_club(club_id)) with check (public.owns_club(club_id));
+```
+
+Toda función nueva es ejecutable por `public` (todos los roles): revocar `execute` a `public` y
+`anon`, y dárselo a `authenticated`; si falta ese `grant`, la política falla para todos.
+
 ### 3.7 Códigos de error de Postgres
 
 Cuando una regla falla, Postgres devuelve un **código de 5 caracteres** (SQLSTATE). `supabase-js`
@@ -293,6 +320,12 @@ Los tests de integración automatizan exactamente esto, pero iniciando sesión c
 - **Editar una migración ya aplicada en producción**: el CLI no la vuelve a ejecutar y las bases
   quedan distintas. Se corrige con una migración nueva.
 - **Usar la secret key en el código de la app**: saltea RLS para todos los usuarios.
+- **Tabla nueva sin `grant` explícito**: anda en local y en producción da `42501` _permission
+  denied for table_.
+- **FK sin `on delete cascade`** cuando el hijo no tiene sentido sin el padre: borrar el padre
+  falla con `23503`.
+- **Formatear al guardar una migración ya aplicada**: el contenido "cambia" sin cambiar nada;
+  desactivar el formateador para `.sql`.
 
 ## 8. Para profundizar
 
