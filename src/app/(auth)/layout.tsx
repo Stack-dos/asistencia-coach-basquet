@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/Logo";
 
 // Banda con el nombre de la app arriba de login, registro y recuperación (estilo "Cancha").
@@ -12,6 +13,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             <br />
             Entrenamientos
           </p>
+          <Link href="/guia" className="text-sm text-stone-300">
+            ¿Cómo se usa? Mirá la guía
+          </Link>
         </div>
       </div>
       {children}

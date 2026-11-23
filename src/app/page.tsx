@@ -63,6 +63,9 @@ export default function LandingPage() {
               <Actions />
             </Suspense>
           </div>
+          <Link href="/guia" className="self-start text-stone-300">
+            ¿Primera vez? Mirá la guía de uso
+          </Link>
         </div>
       </section>
       <main className="mx-auto grid w-full max-w-3xl gap-4 px-6 py-10 sm:grid-cols-3">

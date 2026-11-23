@@ -35,6 +35,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           </span>
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-3">
+          <Link href="/guia" className="shrink-0 text-sm text-background">
+            Guía
+          </Link>
           <Suspense>
             <UserEmail />
           </Suspense>
