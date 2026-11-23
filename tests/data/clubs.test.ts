@@ -121,10 +121,10 @@ describe("createClub", () => {
     expect(mocks.from).not.toHaveBeenCalled();
   });
 
-  test("si el campo falta no llama a Supabase", async () => {
+  test("si el campo falta lo trata como vacío y no llama a Supabase", async () => {
     const state = await createClub({}, form({}));
 
-    expect(state).toEqual({ error: clubErrorMessage(undefined) });
+    expect(state.error).toMatch(/vacío/);
     expect(mocks.from).not.toHaveBeenCalled();
   });
 
