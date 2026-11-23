@@ -31,10 +31,11 @@ export function parseSeasonYear(
 }
 
 /**
- * Fecha de alta propuesta en el formulario: hoy, si cae en la temporada de la categoría; si no,
- * el día de la temporada más cercano a hoy (31/12 de una pasada, 1/1 de una futura).
+ * Fecha propuesta en los formularios de alta, baja y vuelta: hoy, si cae en la temporada de la
+ * categoría; si no, el día de la temporada más cercano a hoy (31/12 de una pasada, 1/1 de una
+ * futura).
  */
-export function defaultJoinedOn(seasonYear: number, today: string): string {
+export function defaultDateInSeason(seasonYear: number, today: string): string {
   const year = Number(today.slice(0, 4));
   if (year === seasonYear) return today;
   return year > seasonYear ? `${seasonYear}-12-31` : `${seasonYear}-01-01`;

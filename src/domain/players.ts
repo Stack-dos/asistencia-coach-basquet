@@ -45,6 +45,51 @@ export function joinedOnError(
   return null;
 }
 
+/** "2026-05-15" + 1 → "2026-05-16". En UTC, para que el horario local no corra el día. */
+export function addDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * Error de la fecha de baja (US-204), o null si es válida: dentro de la temporada y no antes del
+ * alta. Es la regla del check category_players_dates_check y del trigger, con mensaje claro.
+ */
+export function leftOnError(
+  leftOn: string,
+  joinedOn: string,
+  seasonYear: number,
+): string | null {
+  if (!isValidIsoDate(leftOn)) return "La fecha de baja no es válida.";
+  if (Number(leftOn.slice(0, 4)) !== seasonYear) {
+    return `La fecha de baja tiene que estar dentro de la temporada ${seasonYear}.`;
+  }
+  // Con "AAAA-MM-DD" el orden alfabético es el orden de las fechas.
+  if (leftOn < joinedOn) {
+    return `La fecha de baja no puede ser anterior al alta (${formatDate(joinedOn)}).`;
+  }
+  return null;
+}
+
+/**
+ * Error de la fecha de vuelta (US-204, AC3), o null si es válida: dentro de la temporada y
+ * posterior a la baja. El mismo día de la baja ya se superpone: los rangos incluyen sus extremos.
+ */
+export function rejoinDateError(
+  joinedOn: string,
+  previousLeftOn: string,
+  seasonYear: number,
+): string | null {
+  const dateError = joinedOnError(joinedOn, seasonYear);
+  if (dateError) return dateError;
+  if (joinedOn <= previousLeftOn) {
+    return `La vuelta tiene que ser posterior a la baja (${formatDate(previousLeftOn)}).`;
+  }
+  return null;
+}
+
 /**
  * Valida el formulario de jugador (AC1, AC2, AC5). Es la misma regla que la base, pero con
  * mensajes claros y sin ida y vuelta al servidor de Supabase.
