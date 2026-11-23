@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { listClubs } from "@/data/clubs";
+import { getClub, listClubs } from "@/data/clubs";
 import { createClub, deleteClub, renameClub } from "@/data/clubs-actions";
 import { clubErrorMessage } from "@/domain/club-errors";
 
@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
     "update",
     "delete",
     "eq",
+    "maybeSingle",
   ]) {
     query[method] = (...args: unknown[]) => {
       calls.push([method, args]);
@@ -29,8 +30,11 @@ const mocks = vi.hoisted(() => {
     state,
     from: vi.fn(() => query),
     revalidatePath: vi.fn(),
+    redirect: vi.fn(),
   };
 });
+
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: mocks.from }),
@@ -66,6 +70,38 @@ describe("listClubs", () => {
     mocks.state.result = { data: null, error: { code: "XX000" } };
 
     await expect(listClubs()).rejects.toEqual({ code: "XX000" });
+  });
+});
+
+describe("getClub", () => {
+  test("devuelve el club pedido", async () => {
+    const club = { id: "club-1", name: "Atenas" };
+    mocks.state.result = { data: club, error: null };
+
+    expect(await getClub("club-1")).toEqual(club);
+    expect(mocks.calls).toEqual([
+      ["select", ["id, name"]],
+      ["eq", ["id", "club-1"]],
+      ["maybeSingle", []],
+    ]);
+  });
+
+  test("si no existe o es ajeno (0 filas) devuelve null", async () => {
+    mocks.state.result = { data: null, error: null };
+
+    expect(await getClub("club-1")).toBeNull();
+  });
+
+  test("si el id no es un uuid (22P02) devuelve null", async () => {
+    mocks.state.result = { data: null, error: { code: "22P02" } };
+
+    expect(await getClub("hola")).toBeNull();
+  });
+
+  test("con otro error, lo lanza", async () => {
+    mocks.state.result = { data: null, error: { code: "XX000" } };
+
+    await expect(getClub("club-1")).rejects.toEqual({ code: "XX000" });
   });
 });
 
@@ -124,15 +160,15 @@ describe("renameClub", () => {
 });
 
 describe("deleteClub", () => {
-  test("borra el club indicado y refresca /clubes", async () => {
-    const state = await deleteClub("club-1");
+  test("borra el club indicado, refresca y vuelve a /clubes", async () => {
+    await deleteClub("club-1");
 
-    expect(state).toEqual({});
     expect(mocks.calls).toEqual([
       ["delete", []],
       ["eq", ["id", "club-1"]],
     ]);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/clubes", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith("/clubes");
   });
 
   test("si falla devuelve un error genérico y no refresca", async () => {
