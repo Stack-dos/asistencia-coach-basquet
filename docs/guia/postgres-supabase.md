@@ -199,6 +199,7 @@ select has_table('public', 'notes', 'existe notes');
 select throws_ok(
   $$ insert into public.notes (title) values ('') $$,  -- $$...$$ = string sin escapar comillas
   '23514',                                              -- SQLSTATE esperado
+  null,                                                 -- mensaje esperado (null = cualquiera)
   'título vacío viola el check'
 );
 
@@ -214,7 +215,11 @@ set local request.jwt.claims = '{"sub": "<uuid del usuario>"}';
 ```
 
 Funciones más usadas: `has_table`, `is(real, esperado)`, `lives_ok(sql)` (no falla),
-`throws_ok(sql, código)`, `is_empty(select)`, `results_eq(select, select)`.
+`throws_ok(sql, código, mensaje, descripción)`, `is_empty(select)`, `results_eq(select, select)`.
+
+Error común: `throws_ok(sql, '23514', 'descripción')` con 3 argumentos toma el tercero como el
+**mensaje de error esperado**, no como la descripción, y el test falla aunque el código coincida.
+Pasá `null` como mensaje y la descripción en cuarto lugar.
 
 ¿pgTAP o test de integración con Vitest? pgTAP prueba **la base sola**, rápido y sin red.
 Vitest prueba **la app hablando con la base** (supabase-js, sesión real, PostgREST). Se
