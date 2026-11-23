@@ -14,3 +14,17 @@ export async function listClubs(): Promise<Club[]> {
   if (error) throw error;
   return data;
 }
+
+// null si no existe, es de otro entrenador (RLS lo oculta) o el id no es un uuid válido.
+export async function getClub(clubId: string): Promise<Club | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("clubs")
+    .select("id, name")
+    .eq("id", clubId)
+    .maybeSingle();
+  // 22P02 (invalid_text_representation): el id de la URL no es un uuid, ej. /clubes/hola.
+  if (error?.code === "22P02") return null;
+  if (error) throw error;
+  return data;
+}
