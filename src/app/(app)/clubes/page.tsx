@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/EmptyState";
+import { LinkList } from "@/components/LinkList";
+import { NameForm } from "@/components/NameForm";
 import { listClubs } from "@/data/clubs";
-import { CreateClubForm } from "./create-club-form";
+import { createClub } from "@/data/clubs-actions";
 
 // Lee la base con la sesión (dato del request): va dentro de <Suspense>.
 async function ClubList() {
@@ -16,18 +17,12 @@ async function ClubList() {
     );
   }
   return (
-    <ul className="flex flex-col gap-2">
-      {clubs.map((club) => (
-        <li key={club.id}>
-          <Link
-            href={`/clubes/${club.id}`}
-            className="flex min-h-11 items-center rounded-lg border border-line-strong bg-surface px-4 py-3 font-semibold"
-          >
-            {club.name}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <LinkList
+      items={clubs.map((club) => ({
+        href: `/clubes/${club.id}`,
+        label: club.name,
+      }))}
+    />
   );
 }
 
@@ -35,7 +30,13 @@ export default function ClubesPage() {
   return (
     <>
       <h1 className="text-4xl">Clubes</h1>
-      <CreateClubForm />
+      <NameForm
+        action={createClub}
+        id="club-name"
+        label="Nuevo club"
+        submitLabel="Crear club"
+        pendingLabel="Creando…"
+      />
       <Suspense>
         <ClubList />
       </Suspense>
