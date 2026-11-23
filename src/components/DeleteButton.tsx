@@ -7,8 +7,8 @@ import { FormError } from "@/components/FormError";
 type DeleteButtonProps = {
   // Server Action con el id ya fijado con .bind; si sale bien, redirige.
   action: () => Promise<{ error?: string }>;
-  // Hay que escribirlo exacto para confirmar (RN-07).
-  name: string;
+  // Si viene, hay que escribirlo exacto para confirmar (RN-07); si no, confirmación simple.
+  name?: string;
   triggerLabel: string;
   title: string;
   description: string;

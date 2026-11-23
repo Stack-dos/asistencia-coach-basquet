@@ -28,4 +28,11 @@ describe("normalizeName", () => {
     // El texto del mensaje es de la UI: sólo verificamos que exista.
     expect(result).toHaveProperty("error", expect.any(String));
   });
+
+  test("label cambia el sujeto del mensaje", () => {
+    expect(normalizeName("", "El apellido")).toEqual({
+      ok: false,
+      error: "El apellido no puede estar vacío.",
+    });
+  });
 });

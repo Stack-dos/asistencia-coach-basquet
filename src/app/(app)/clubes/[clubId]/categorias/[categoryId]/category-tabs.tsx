@@ -17,7 +17,11 @@ export function CategoryTabs({ basePath }: { basePath: string }) {
       <ul className="flex gap-1 border-b border-line-strong">
         {TABS.map((tab) => {
           const href = basePath + tab.segment;
-          const active = pathname === href;
+          // Grilla sólo en su ruta exacta; las demás también en sus sub-rutas (.../jugadores/<id>).
+          const active =
+            tab.segment === ""
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={tab.label}>
               <Link
