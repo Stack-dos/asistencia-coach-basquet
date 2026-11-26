@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   assignErrorMessage,
+  attendanceErrorMessage,
   categoryErrorMessage,
   clubErrorMessage,
   leaveErrorMessage,
@@ -78,5 +79,15 @@ describe("sessionErrorMessage", () => {
 
   test("cualquier otro código da un mensaje genérico", () => {
     expect(sessionErrorMessage(undefined)).toMatch(/error inesperado/);
+  });
+});
+
+describe("attendanceErrorMessage", () => {
+  test("check_violation (23514): algún jugador no corresponde a la fecha", () => {
+    expect(attendanceErrorMessage("23514")).toMatch(/Recargá la página/);
+  });
+
+  test("cualquier otro código da un mensaje genérico", () => {
+    expect(attendanceErrorMessage(undefined)).toMatch(/error inesperado/);
   });
 });

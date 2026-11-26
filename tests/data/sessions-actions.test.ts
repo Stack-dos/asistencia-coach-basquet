@@ -144,16 +144,30 @@ describe("updateSessionDate", () => {
 });
 
 describe("deleteSession", () => {
-  test("AC3: borra la clase de esa categoría y refresca", async () => {
-    const state = await deleteSession("cat-1", "s-1");
+  test("AC3: borra la clase de esa categoría y vuelve al mes que tenía", async () => {
+    mocks.state.results = [{ data: [{ held_on: "2026-03-14" }], error: null }];
 
-    expect(state).toEqual({});
+    await deleteSession("cat-1", "s-1");
+
     expect(mocks.calls).toEqual([
       ["from", ["sessions"]],
       ["delete", []],
       ["eq", ["id", "s-1"]],
       ["eq", ["category_id", "cat-1"]],
+      ["select", ["held_on"]],
     ]);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/clubes", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/clubes/club-1/categorias/cat-1/clases?mes=2026-03",
+    );
+  });
+
+  test("si no borró ninguna fila (ajena o de otra categoría), error genérico", async () => {
+    mocks.state.results = [{ data: [], error: null }];
+
+    const state = await deleteSession("cat-1", "s-1");
+
+    expect(state).toEqual({ error: sessionErrorMessage(undefined) });
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });
