@@ -632,12 +632,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   - AC3: `/guia` se ve con y sin sesión, y se llega desde todas las pantallas.
 - **Entidades:** ninguna.
 - **Testing Mínimo:** unitario de `getAuthRedirect` para `/` y `/guia`.
-- **Archivos a crear:**
-
-  ```txt
-  src/app/page.tsx
-  src/app/guia/page.tsx
-  ```
 
 ---
 
@@ -675,16 +669,6 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Entidades:** `sessions`.
 - **Testing Mínimo:** unitario de `monthRange` (incluye febrero bisiesto y diciembre);
   integración del `unique`.
-- **Archivos a crear:**
-
-  ```txt
-  supabase/migrations/0005_sessions.sql
-  src/domain/months.ts
-  src/data/sessions.ts
-  src/components/MonthPicker.tsx
-  src/app/(app)/clubes/[clubId]/categorias/[categoryId]/clases/page.tsx
-  tests/unit/months.test.ts
-  ```
 
 > ⚠️ **Esto tiene que controlarse** (D-08) — **Pregunta:** ¿las clases se generan solas según
 > los días de entrenamiento? **Decisión:** no; se cargan una por una. **Por qué:** `CLAUDE.md`

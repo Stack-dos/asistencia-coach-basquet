@@ -38,6 +38,20 @@ export function assignErrorMessage(code: string | undefined): string {
   }
 }
 
+// US-301
+export function sessionErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case UNIQUE_VIOLATION: // sessions_category_id_held_on_key (RN-06)
+      return "Ya hay una clase ese día.";
+    case "23514": // check_violation: trigger sessions_season
+    case "22007": // invalid_datetime_format: fecha vacía o mal escrita
+    case "22008": // datetime_field_overflow: 30/02 y similares
+      return "Elegí una fecha dentro de la temporada de la categoría.";
+    default:
+      return UNEXPECTED;
+  }
+}
+
 export function categoryErrorMessage(code: string | undefined): string {
   // categories_club_id_name_season_year_key
   if (code === UNIQUE_VIOLATION)

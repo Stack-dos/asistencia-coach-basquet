@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 export const metadata: Metadata = { title: "Guía de uso" };
 
 // Sin sesión ni base: estática, se genera en el build.
-// Al terminar US-301 (clases) y US-302 (asistencia), sumar sus pasos acá.
+// Al terminar US-302 (asistencia), sumar su paso acá.
 const STEPS = [
   {
     title: "Creá tu club",
@@ -19,6 +19,10 @@ const STEPS = [
   {
     title: "Dá de alta a los jugadores",
     text: "Entrá a la categoría, pestaña Jugadores. Completá nombre, apellido, año de nacimiento (opcional) y la fecha de alta, y tocá Agregar jugador. La fecha de alta es el día que empezó: así la app sabe quién es nuevo.",
+  },
+  {
+    title: "Planificá las clases del mes",
+    text: "En la categoría, pestaña Clases, elegí el mes con las flechas y agregá cada día que hubo (o va a haber) entrenamiento. Si te equivocaste de fecha, tocá la clase para cambiarla o eliminarla.",
   },
   {
     title: "Si un jugador deja",
@@ -49,7 +53,7 @@ export default function GuiaPage() {
       </div>
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
         <p className="text-muted">
-          El orden es: club → categorías → jugadores.
+          El orden es: club → categorías → jugadores → clases.
         </p>
         <ol className="flex flex-col gap-4">
           {STEPS.map((step, index) => (
