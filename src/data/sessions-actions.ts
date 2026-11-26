@@ -66,20 +66,27 @@ export async function updateSessionDate(
   redirect(sessionsPath(category, heldOn));
 }
 
-/** AC3: eliminar (confirmación simple). Se usa con .bind(null, categoryId, sessionId). */
+/**
+ * AC3: eliminar (confirmación simple). Se usa con .bind(null, categoryId, sessionId).
+ * Se llama desde la página de la clase (US-302): vuelve a la lista del mes que tenía.
+ */
 export async function deleteSession(
   categoryId: string,
   sessionId: string,
 ): Promise<SessionFormState> {
+  const category = await getCategory(categoryId);
+  if (!category) return { error: sessionErrorMessage(undefined) };
+
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("sessions")
     .delete()
     .eq("id", sessionId)
-    .eq("category_id", categoryId);
+    .eq("category_id", categoryId)
+    .select("held_on");
   if (error) return { error: sessionErrorMessage(error.code) };
+  if (data.length === 0) return { error: sessionErrorMessage(undefined) };
 
-  // Se queda en la misma página: revalidar alcanza para que la clase desaparezca de la lista.
   revalidatePath("/clubes", "layout");
-  return {};
+  redirect(sessionsPath(category, data[0].held_on));
 }
