@@ -1,16 +1,12 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DateForm } from "@/components/DateForm";
-import { DeleteButton } from "@/components/DeleteButton";
 import { EmptyState } from "@/components/EmptyState";
+import { LinkList } from "@/components/LinkList";
 import { MonthPicker } from "@/components/MonthPicker";
 import { getCategory } from "@/data/categories";
 import { listSessions } from "@/data/sessions";
-import {
-  createSession,
-  deleteSession,
-  updateSessionDate,
-} from "@/data/sessions-actions";
+import { createSession } from "@/data/sessions-actions";
 import { parseMonth } from "@/domain/months";
 import { formatDate } from "@/domain/players";
 import { defaultDateInSeason, todayInArgentina } from "@/domain/season";
@@ -29,6 +25,7 @@ async function Sessions({ params, searchParams }: Props) {
   const today = todayInArgentina();
   const month = parseMonth(mes, category.season_year, today);
   const sessions = await listSessions(category.id, month);
+  const basePath = `/clubes/${clubId}/categorias/${categoryId}/clases`;
 
   // AC5: el navegador no deja elegir fuera de la temporada; la base lo vuelve a validar.
   const min = `${category.season_year}-01-01`;
@@ -39,7 +36,7 @@ async function Sessions({ params, searchParams }: Props) {
       <section className="flex flex-col gap-4">
         <h2 className="text-2xl">Clases</h2>
         <MonthPicker
-          basePath={`/clubes/${clubId}/categorias/${categoryId}/clases`}
+          basePath={basePath}
           month={month}
           seasonYear={category.season_year}
         />
@@ -49,42 +46,14 @@ async function Sessions({ params, searchParams }: Props) {
             description="Agregá la primera con el formulario de abajo."
           />
         ) : (
-          <ul className="flex flex-col gap-2">
-            {sessions.map((session) => (
-              <li key={session.id}>
-                {/* Plegado: abrirlo sólo para corregir (AC3). */}
-                <details className="rounded-lg border border-line-strong bg-surface p-4">
-                  <summary className="cursor-pointer font-semibold">
-                    {formatDate(session.held_on)}
-                  </summary>
-                  <div className="mt-4 flex flex-col gap-4">
-                    <DateForm
-                      action={updateSessionDate.bind(
-                        null,
-                        category.id,
-                        session.id,
-                      )}
-                      id={`held-on-${session.id}`}
-                      name="held_on"
-                      label="Cambiar fecha"
-                      defaultValue={session.held_on}
-                      min={min}
-                      max={max}
-                      submitLabel="Guardar fecha"
-                      pendingLabel="Guardando…"
-                      variant="secondary"
-                    />
-                    <DeleteButton
-                      action={deleteSession.bind(null, category.id, session.id)}
-                      triggerLabel="Eliminar clase"
-                      title={`Eliminar la clase del ${formatDate(session.held_on)}`}
-                      description="Se borra la clase de esta categoría. No se puede deshacer."
-                    />
-                  </div>
-                </details>
-              </li>
-            ))}
-          </ul>
+          // US-302: tocar la clase abre su toma de asistencia (cambiar fecha y eliminar, ahí).
+          <LinkList
+            items={sessions.map((session) => ({
+              href: `${basePath}/${session.id}`,
+              label: formatDate(session.held_on),
+              detail: "Tomar asistencia",
+            }))}
+          />
         )}
       </section>
 
