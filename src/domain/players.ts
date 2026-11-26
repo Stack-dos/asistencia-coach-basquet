@@ -152,3 +152,17 @@ export function formatDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
 }
+
+/**
+ * ¿La pertenencia incluye la fecha? Alta y baja cuentan (mismo rango '[]' que el trigger
+ * attendances_validate). Las fechas "AAAA-MM-DD" se comparan como strings.
+ */
+export function isActiveOn(
+  membership: { joined_on: string; left_on: string | null },
+  date: string,
+): boolean {
+  return (
+    membership.joined_on <= date &&
+    (membership.left_on === null || membership.left_on >= date)
+  );
+}
