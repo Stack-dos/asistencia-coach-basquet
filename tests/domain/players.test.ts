@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   addDays,
   formatDate,
+  isActiveOn,
   isSameName,
   isValidIsoDate,
   joinedOnError,
@@ -181,5 +182,25 @@ describe("isSameName", () => {
 describe("formatDate", () => {
   test("AAAA-MM-DD → DD/MM/AAAA", () => {
     expect(formatDate("2026-03-02")).toBe("02/03/2026");
+  });
+});
+
+describe("isActiveOn (US-302 AC1)", () => {
+  const membership = { joined_on: "2026-03-01", left_on: "2026-05-15" };
+
+  test.each([
+    ["el día del alta", "2026-03-01", true],
+    ["en el medio", "2026-04-10", true],
+    ["el día de la baja", "2026-05-15", true],
+    ["antes del alta", "2026-02-28", false],
+    ["después de la baja", "2026-05-16", false],
+  ])("%s → %s", (_, date, expected) => {
+    expect(isActiveOn(membership, date)).toBe(expected);
+  });
+
+  test("sin baja, sigue activo", () => {
+    expect(isActiveOn({ ...membership, left_on: null }, "2026-12-31")).toBe(
+      true,
+    );
   });
 });

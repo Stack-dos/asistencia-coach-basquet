@@ -52,6 +52,14 @@ export function sessionErrorMessage(code: string | undefined): string {
   }
 }
 
+// US-302
+export function attendanceErrorMessage(code: string | undefined): string {
+  // check_violation: attendances_membership (RN-03). Pasa si otra pestaña cambió el plantel.
+  if (code === "23514")
+    return "Algún jugador ya no está en la categoría en la fecha de la clase. Recargá la página y probá de nuevo.";
+  return UNEXPECTED;
+}
+
 export function categoryErrorMessage(code: string | undefined): string {
   // categories_club_id_name_season_year_key
   if (code === UNIQUE_VIOLATION)

@@ -97,18 +97,20 @@ las temporadas y su paso por cada categoría queda registrado como una **pertene
 
 Estas definiciones son la base de todas las estadísticas y se usan igual en todo el sistema.
 
-| Concepto                                         | Definición                                                                                                                                                                                                                                                      |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mes                                              | Mes calendario (1 al último día).                                                                                                                                                                                                                               |
-| Año / temporada                                  | Año calendario (1/1 al 31/12). Cada categoría pertenece a una sola temporada.                                                                                                                                                                                   |
-| **Pertenencia**                                  | Período en que un jugador estuvo en una categoría: `fecha_alta` y `fecha_baja` (nula si no se dio de baja). Su fin efectivo es `fecha_baja` o el 31/12 de la temporada de la categoría.                                                                         |
-| Jugador **activo** en la categoría C en el mes M | Tiene una pertenencia en C con `fecha_alta ≤ último día de M` y fin efectivo `≥ primer día de M`.                                                                                                                                                               |
-| Jugador **activo** en el club en el mes M        | Activo en al menos una categoría del club en M. Se cuenta **una vez** aunque esté en dos categorías.                                                                                                                                                            |
-| Jugador **nuevo** en el mes M                    | La `fecha_alta` de su **primera pertenencia en el club** (en cualquier categoría y temporada) cae dentro de M. Pasar de categoría o volver después de una baja **no** lo hace nuevo. En una categoría, es nuevo si esa primera pertenencia es en esa categoría. |
-| **% de nuevos** en M                             | nuevos en M ÷ activos en M × 100.                                                                                                                                                                                                                               |
-| **Abandono** en el mes M                         | Una pertenencia con `fecha_baja` dentro de M. La baja la marca el entrenador. Terminar la temporada sin pasar a otra categoría **no** es abandono.                                                                                                              |
-| **Clases** del período                           | Clases cargadas con fecha dentro del período.                                                                                                                                                                                                                   |
-| **% de asistencia** de un jugador en un período  | presentes ÷ clases del período en las que el jugador estaba activo (fecha dentro de alguna de sus pertenencias en esa categoría) × 100. Si el divisor es 0, no se muestra porcentaje.                                                                           |
+| Concepto                                         | Definición                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mes                                              | Mes calendario (1 al último día).                                                                                                                                                                                                                                                                                                       |
+| Año / temporada                                  | Año calendario (1/1 al 31/12). Cada categoría pertenece a una sola temporada.                                                                                                                                                                                                                                                           |
+| **Pertenencia**                                  | Período en que un jugador estuvo en una categoría: `fecha_alta` y `fecha_baja` (nula si no se dio de baja). Su fin efectivo es `fecha_baja` o el 31/12 de la temporada de la categoría.                                                                                                                                                 |
+| Jugador **activo** en la categoría C en el mes M | Tiene una pertenencia en C con `fecha_alta ≤ último día de M` y fin efectivo `≥ primer día de M`.                                                                                                                                                                                                                                       |
+| Jugador **activo** en el club en el mes M        | Activo en al menos una categoría del club en M. Se cuenta **una vez** aunque esté en dos categorías.                                                                                                                                                                                                                                    |
+| Jugador **nuevo** en el mes M                    | La `fecha_alta` de su **primera pertenencia en el club** (en cualquier categoría y temporada) cae dentro de M. Pasar de categoría o volver después de una baja **no** lo hace nuevo. En una categoría, es nuevo si esa primera pertenencia es en esa categoría. Una **prueba no continuada** no es nuevo (D-29).                        |
+| Jugador **en prueba** (US-305)                   | Entró al club con la marca "Viene a probar" y todavía no fue a `N` clases, con `N` = `trial_sessions` del club. Cuentan las clases a las que **fue**, en cualquier categoría del club; las ausencias no suman. Al llegar a `N` presentes queda **confirmado**. Sus primeras `N` presencias son clases **de prueba** ("P" en la grilla). |
+| **Prueba no continuada** en el mes M             | Una baja con fecha dentro de M de un jugador que todavía estaba en prueba. **No** es abandono.                                                                                                                                                                                                                                          |
+| **% de nuevos** en M                             | nuevos en M ÷ activos en M × 100.                                                                                                                                                                                                                                                                                                       |
+| **Abandono** en el mes M                         | Una pertenencia con `fecha_baja` dentro de M. La baja la marca el entrenador. Terminar la temporada sin pasar a otra categoría **no** es abandono. Una baja durante la prueba tampoco: es una prueba no continuada (D-29).                                                                                                              |
+| **Clases** del período                           | Clases cargadas con fecha dentro del período.                                                                                                                                                                                                                                                                                           |
+| **% de asistencia** de un jugador en un período  | presentes ÷ clases del período en las que el jugador estaba activo (fecha dentro de alguna de sus pertenencias en esa categoría) × 100. Si el divisor es 0, no se muestra porcentaje.                                                                                                                                                   |
 
 ---
 
@@ -133,15 +135,15 @@ durante la clase, sin mantener fórmulas.
 
 ### 4.1 Entidades principales
 
-| Entidad                 | Campos principales                                                                                       | Notas                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `auth.users` (Supabase) | `id`, `email`                                                                                            | El entrenador. No se crea tabla de perfil propia en v1. |
-| `clubs`                 | `id`, `coach_id → auth.users`, `name`, `created_at`                                                      |                                                         |
-| `categories`            | `id`, `club_id → clubs`, `name`, `season_year` (smallint), `created_at`                                  | Una categoría de **una** temporada ("U13 2026").        |
-| `players`               | `id`, `club_id → clubs`, `first_name`, `last_name`, `birth_year` (smallint, nullable), `created_at`      | La **persona**. Es la misma en todas las temporadas.    |
-| `category_players`      | `id`, `category_id → categories`, `player_id → players`, `joined_on`, `left_on` (nullable), `created_at` | **Pertenencia**: `joined_on` = alta, `left_on` = baja.  |
-| `sessions`              | `id`, `category_id → categories`, `held_on` (date), `created_at`                                         | Una clase.                                              |
-| `attendances`           | `session_id → sessions`, `player_id → players`, PK compuesta                                             | Existe una fila sólo si el jugador estuvo **presente**. |
+| Entidad                 | Campos principales                                                                                                                | Notas                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `auth.users` (Supabase) | `id`, `email`                                                                                                                     | El entrenador. No se crea tabla de perfil propia en v1.                                   |
+| `clubs`                 | `id`, `coach_id → auth.users`, `name`, `trial_sessions` (smallint, 0 = sin prueba), `created_at`                                  | `trial_sessions` lo agrega US-305.                                                        |
+| `categories`            | `id`, `club_id → clubs`, `name`, `season_year` (smallint), `created_at`                                                           | Una categoría de **una** temporada ("U13 2026").                                          |
+| `players`               | `id`, `club_id → clubs`, `first_name`, `last_name`, `birth_year` (smallint, nullable), `started_on_trial` (boolean), `created_at` | La **persona**. Es la misma en todas las temporadas. `started_on_trial` lo agrega US-305. |
+| `category_players`      | `id`, `category_id → categories`, `player_id → players`, `joined_on`, `left_on` (nullable), `created_at`                          | **Pertenencia**: `joined_on` = alta, `left_on` = baja.                                    |
+| `sessions`              | `id`, `category_id → categories`, `held_on` (date), `created_at`                                                                  | Una clase.                                                                                |
+| `attendances`           | `session_id → sessions`, `player_id → players`, PK compuesta                                                                      | Existe una fila sólo si el jugador estuvo **presente**.                                   |
 
 Relaciones:
 
@@ -193,7 +195,7 @@ Todas se crean en el Hito 4 (US-401). Ninguna existe todavía.
 
 | Vista                    | Granularidad              | Contenido                                                                                   |
 | ------------------------ | ------------------------- | ------------------------------------------------------------------------------------------- |
-| `category_monthly_stats` | categoría × mes           | activos, nuevos, % nuevos, abandonos, clases.                                               |
+| `category_monthly_stats` | categoría × mes           | activos (y cuántos en prueba), nuevos, % nuevos, abandonos, pruebas no continuadas, clases. |
 | `club_monthly_stats`     | club × mes                | lo mismo por club, contando **personas distintas**.                                         |
 | `player_attendance`      | jugador × clase aplicable | 1/0 presente, para calcular % en cualquier período.                                         |
 | `player_seasons`         | jugador × categoría       | temporada, categoría, alta, baja, presentes, clases aplicables, %. Alimenta la trayectoria. |
@@ -276,6 +278,9 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
   volver después de una baja no lo hace nuevo (D-05, D-21).
 - **RN-10** La baja (abandono) la marca el entrenador con fecha. El fin de temporada no es una
   baja (D-06).
+- **RN-11** Un jugador que entra al club a prueba está en prueba hasta ir a `N` clases
+  (configurable por club, en cualquier categoría del club; las ausencias no suman). Si se da de
+  baja antes, es una prueba no continuada: no cuenta como nuevo ni como abandono (D-28, D-29).
 
 ---
 
@@ -329,6 +334,9 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 | D-25 | Año de nacimiento                        | Opcional, informativo; asignación manual                                | Confirmada  |
 | D-26 | Landing y guía de uso                    | `/` y `/guia` públicas, guía estática                                   | Confirmada  |
 | D-27 | Pruebas de carga y observabilidad        | k6 + Grafana, Sentry, Speed Insights, pg_stat_statements; planes gratis | Confirmada  |
+| D-28 | Período de prueba                        | `N` clases presentes por club, en todas sus categorías; baja manual     | Confirmada  |
+| D-29 | Prueba en las estadísticas               | Activo sí; nuevo y abandono no si deja en prueba; se cuenta aparte      | A controlar |
+| D-30 | Quién entra a prueba                     | Marca "Viene a probar" en el alta; por defecto sí desde una clase       | A controlar |
 
 ### 9.2 ADRs pendientes
 
@@ -639,7 +647,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 - **Objetivo del hito:** reemplazar la hoja de Excel: cargar clases, tomar asistencia y ver
   la grilla mensual.
-- **Épicas:** 2 · **Historias:** 4 · **Esfuerzo total estimado:** ~13 días·persona
+- **Épicas:** 2 · **Historias:** 5 · **Esfuerzo total estimado:** ~16 días·persona
 
 #### Épica H3-E1: Clases
 
@@ -787,6 +795,77 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 > más valioso (nivel Crítico en sección 12); borrarlo en silencio sería peor que pedir una
 > corrección manual.
 
+#### US-305 — Jugadores en prueba
+
+- **Esfuerzo:** M (3 días) · **Prioridad:** Media · **Dependencias:** US-204, US-302, US-303
+- **Objetivo Funcional:** distinguir a los chicos que vienen a probar de los que ya forman
+  parte del plantel, sin ensuciar las estadísticas de nuevos y abandonos.
+- **Narrativa:** Como entrenador, quiero que un chico nuevo quede "en prueba" hasta que venga
+  a una cantidad de clases que defino para el club, para saber quién está probando y que los
+  que no siguen no cuenten como abandono.
+- **Detalle técnico:**
+  - Migración: `clubs.trial_sessions smallint not null default 0` (0 = el club no usa prueba;
+    `check` entre 0 y 20) y `players.started_on_trial boolean not null default false` (D-30).
+    Grants y RLS no cambian.
+  - Configuración del club: campo "Clases de prueba" en la página del club, junto a renombrar.
+  - `PlayerForm`: casilla "Viene a probar". Marcada por defecto al agregar desde una clase
+    (US-302); desmarcada en el plantel. El inicio de temporada (US-205) no crea personas, así
+    que no la usa.
+  - `src/domain/trial.ts`: `trialStatus(attendedDates[], trialSessions)` → en prueba
+    (`k` de `N`) o confirmado, y cuáles de las fechas son de prueba. Función pura: el estado
+    se **calcula**, no se guarda, así cambiar `N` recalcula todo (incluso hacia atrás).
+  - `src/data/trial.ts`: presencias del jugador en todas las categorías del club, ordenadas
+    por fecha.
+  - Plantel (US-203) y toma de asistencia (US-302): marca "En prueba · k de N".
+  - Grilla (US-303): las primeras `N` presencias de un jugador en prueba se muestran como "P"
+    en vez de ✓; siguen contando como presentes.
+  - Dar de baja (US-204) a alguien en prueba avisa: "Está en prueba: no cuenta como abandono".
+    La baja sigue siendo manual (RN-10).
+  - Sumar a `/guia` cómo configurar y usar la prueba (US-206).
+- **Criterios de Aceptación:**
+  - AC1: el club define `N`; con `N` = 0 nadie está en prueba y nada cambia.
+  - AC2: un jugador dado de alta con "Viene a probar" queda en prueba hasta su `N`-ésima
+    presencia en cualquier categoría del club; las ausencias no suman.
+  - AC3: en la grilla, sus primeras `N` presencias se ven como "P".
+  - AC4: al llegar a `N` presencias deja de mostrarse "En prueba".
+  - AC5: una baja durante la prueba se cuenta como prueba no continuada, no como abandono ni
+    como nuevo (la regla la implementa US-401 con la sección 2.1).
+  - AC6: cambiar `N` recalcula el estado de todos los jugadores del club.
+- **Reglas de Negocio:** RN-09, RN-10, RN-11; D-28, D-29, D-30.
+- **Entidades:** `clubs`, `players`, `attendances`, `sessions`, `category_players`.
+- **Testing Mínimo:** unitario de `trialStatus` (sin prueba, en prueba, justo `N`, ausencias
+  intercaladas, presencias en dos categorías el mismo día); pgTAP del `check` de
+  `trial_sessions`.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0008_trial.sql
+  src/domain/trial.ts
+  src/data/trial.ts
+  src/components/PlayerForm.tsx (actualizar)
+  src/app/(app)/clubes/[clubId]/page.tsx (actualizar)
+  tests/domain/trial.test.ts
+  tests/db/trial.test.sql
+  ```
+
+> ⚠️ **Esto tiene que controlarse** (D-29) — **Pregunta:** ¿cómo cuenta un jugador en prueba en
+> las estadísticas? **Decisión:** la prueba **no borra nada, sólo reclasifica altas y bajas**.
+> Mientras está en la grilla cuenta como activo, y sus presencias "P" cuentan para la
+> asistencia y el ranking. Si se da de baja antes de completar la prueba, esa baja no es
+> abandono sino "prueba no continuada" (columna aparte) y su alta deja de contar como nuevo.
+> Las estadísticas muestran cuántos de los activos están en prueba. **Por qué:** lo que se ve
+> en la grilla y lo que cuentan las estadísticas coinciden (un chico que vino a 2 clases
+> aparece en esas 2 clases y en esos activos), y los números que la prueba cambia quedan a la
+> vista en su propia columna en vez de desaparecer. **Consecuencia:** los "nuevos" de un mes
+> pueden bajar después, cuando alguien deja la prueba; la columna "pruebas no continuadas"
+> explica la diferencia.
+
+> ⚠️ **Esto tiene que controlarse** (D-30) — **Pregunta:** ¿quién entra a prueba? **Decisión:**
+> sólo quien se da de alta con "Viene a probar". **Por qué:** si fuera todo jugador nuevo en el
+> club, al empezar a usar la app el plantel que ya venía entrenando quedaría entero en prueba.
+> Agregar a un chico desde una clase (el caso típico de "vino a probar") trae la casilla
+> marcada.
+
 ---
 
 ### Hito 4 — Estadísticas (v0.4)
@@ -799,7 +878,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 #### US-401 — Vistas SQL de estadísticas
 
-- **Esfuerzo:** M (4 días) · **Prioridad:** Urgente · **Dependencias:** US-204, US-302
+- **Esfuerzo:** M (4 días) · **Prioridad:** Urgente · **Dependencias:** US-204, US-302, US-305
 - **Objetivo Funcional:** una única fuente de verdad para todos los números.
 - **Narrativa:** Como entrenador, quiero que los números se calculen siempre igual, para
   confiar en ellos como confiaba en mis fórmulas.
@@ -809,7 +888,8 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
     generados con `generate_series` sobre los 12 meses de la temporada de la categoría.
   - Seed de datos de prueba (`supabase/seed.sql`) con casos borde: alta y baja en el mismo
     mes, jugador sin clases aplicables, mes sin clases, pase de categoría entre temporadas,
-    jugador que vuelve después de una baja, jugador en dos categorías a la vez.
+    jugador que vuelve después de una baja, jugador en dos categorías a la vez, jugador que
+    completa la prueba y jugador que se da de baja durante la prueba (RN-11).
 - **Criterios de Aceptación:**
   - AC1: las vistas cumplen exactamente las definiciones de la sección 2.1.
   - AC2: un mes sin clases aparece con 0 clases (no desaparece).
@@ -822,7 +902,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **Archivos a crear:**
 
   ```txt
-  supabase/migrations/0008_stats_views.sql
+  supabase/migrations/0009_stats_views.sql
   supabase/seed.sql
   src/data/stats.ts
   tests/integration/stats.test.ts
@@ -1232,3 +1312,13 @@ El documento se revisó cuatro veces después del primer borrador. Correcciones 
   y observabilidad.
 - US-502 (release) ahora depende de US-503, US-504 y US-505. Carga por hito: H2 ~15 y
   H5 ~13 días·persona.
+
+**Iteración 6 — jugadores en prueba (2026-11-26):**
+
+- US-305 (Hito 3): período de prueba de `N` clases presentes, configurable por club y válido
+  en todas sus categorías; las clases de prueba se ven como "P" en la grilla (D-28, RN-11).
+- Definiciones nuevas en la sección 2.1: "en prueba" y "prueba no continuada"; "nuevo" y
+  "abandono" excluyen a quien deja durante la prueba (D-29, a controlar).
+- Quién entra a prueba se marca en el alta (D-30, a controlar).
+- La migración de vistas pasa a `0009`; US-401 depende de US-305 y su seed suma los casos de
+  prueba. Carga del Hito 3: ~16 días·persona.
