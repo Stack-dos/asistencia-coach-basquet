@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AttendanceList } from "@/components/AttendanceList";
 import type { AttendanceRow } from "@/data/attendances";
@@ -56,5 +56,28 @@ describe("AttendanceList", () => {
     expect(checkbox("Castro, Nombre").checked).toBe(true);
     expect(checkbox("Álvarez, Nombre").checked).toBe(false);
     expect(screen.getByText("1 de 3 presentes")).toBeTruthy();
+  });
+
+  test("AC2: al guardar manda los tildados y los checkboxes siguen tildados", async () => {
+    const user = userEvent.setup();
+    const save = vi.fn(async (_prev: unknown, formData: FormData) => {
+      void formData;
+      return { saved: true };
+    });
+    render(<AttendanceList rows={rows} action={save} />);
+    await user.click(screen.getByLabelText("Benítez, Nombre"));
+
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    const formData = save.mock.calls[0][1];
+    expect(formData.getAll("present")).toEqual(["p-1", "p-2"]);
+    // La acción terminó cuando el botón deja de decir "Guardando…".
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Guardar" })).toBeTruthy(),
+    );
+    // Bug: React reseteaba el form (form.reset()) después de la acción y los destildaba.
+    expect(checkbox("Álvarez, Nombre").checked).toBe(true);
+    expect(checkbox("Benítez, Nombre").checked).toBe(true);
   });
 });

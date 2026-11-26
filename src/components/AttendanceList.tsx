@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { AttendanceToggle } from "@/components/AttendanceToggle";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
@@ -38,7 +38,18 @@ export function AttendanceList({
   const unsaved = rows.some((row) => isPresent(row) !== row.present);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    // onSubmit y no action={formAction}: con action, React llama a form.reset() al terminar,
+    // y el reset nativo vuelve cada checkbox a su defaultChecked (false) sin que el estado de
+    // React cambie: los tildes desaparecían y un segundo Guardar mandaba la lista vacía.
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        // En una transición, para que useActionState marque `pending`.
+        startTransition(() => formAction(formData));
+      }}
+      className="flex flex-col gap-2"
+    >
       {rows.map((row) => (
         <AttendanceToggle
           key={row.player.id}
