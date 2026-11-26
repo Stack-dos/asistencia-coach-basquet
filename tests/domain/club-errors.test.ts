@@ -5,6 +5,7 @@ import {
   clubErrorMessage,
   leaveErrorMessage,
   playerErrorMessage,
+  sessionErrorMessage,
 } from "@/domain/club-errors";
 
 describe("assignErrorMessage", () => {
@@ -60,5 +61,22 @@ describe("categoryErrorMessage", () => {
   test("cualquier otro código da un mensaje genérico", () => {
     expect(categoryErrorMessage("23514")).toMatch(/error inesperado/);
     expect(categoryErrorMessage(undefined)).toMatch(/error inesperado/);
+  });
+});
+
+describe("sessionErrorMessage", () => {
+  test("AC2: unique_violation (23505) es una clase repetida", () => {
+    expect(sessionErrorMessage("23505")).toBe("Ya hay una clase ese día.");
+  });
+
+  test.each(["23514", "22007", "22008"])(
+    "AC5: %s es una fecha inválida o fuera de la temporada",
+    (code) => {
+      expect(sessionErrorMessage(code)).toMatch(/dentro de la temporada/);
+    },
+  );
+
+  test("cualquier otro código da un mensaje genérico", () => {
+    expect(sessionErrorMessage(undefined)).toMatch(/error inesperado/);
   });
 });
