@@ -5,6 +5,9 @@ export type Player = {
   first_name: string;
   last_name: string;
   birth_year: number | null;
+  // US-207: contacto del tutor, opcional.
+  guardian_name: string | null;
+  guardian_phone: string | null;
 };
 
 /** Una pertenencia (category_players) con la persona embebida. */
@@ -16,7 +19,8 @@ export type Membership = {
   player: Player;
 };
 
-const PLAYER_COLUMNS = "id, first_name, last_name, birth_year";
+const PLAYER_COLUMNS =
+  "id, first_name, last_name, birth_year, guardian_name, guardian_phone";
 // player:players(...) es un "embed" de PostgREST: trae la fila de players a la que apunta la FK
 // player_id en la misma consulta (un JOIN). Como cada pertenencia tiene un solo jugador, llega
 // como objeto, no como lista. supabase-js no lo sabe (no tenemos tipos generados de la base) y

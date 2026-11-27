@@ -2,7 +2,7 @@
 -- Correr: npx supabase test db tests/db
 begin;
 
-select plan(39);
+select plan(44);
 
 -- Arrange (como postgres, sin RLS).
 -- A: clubes a1 (categorías c1 2026 y c2 2025) y a2 (c3 2026). B: club b1 (c4 2026).
@@ -51,10 +51,10 @@ select table_privs_are('public', 'category_players', 'authenticated',
 select function_privs_are('public', 'owns_category', array['uuid'], 'authenticated',
   array['EXECUTE'], 'authenticated puede ejecutar owns_category');
 select function_privs_are('public', 'create_player',
-  array['uuid', 'text', 'text', 'smallint', 'date'], 'anon', array[]::text[],
+  array['uuid', 'text', 'text', 'smallint', 'date', 'text', 'text'], 'anon', array[]::text[],
   'anon no puede ejecutar create_player');
 select function_privs_are('public', 'create_player',
-  array['uuid', 'text', 'text', 'smallint', 'date'], 'authenticated', array['EXECUTE'],
+  array['uuid', 'text', 'text', 'smallint', 'date', 'text', 'text'], 'authenticated', array['EXECUTE'],
   'authenticated puede ejecutar create_player');
 select function_privs_are('public', 'delete_category_player', array['uuid'], 'authenticated',
   array['EXECUTE'], 'authenticated puede ejecutar delete_category_player');
@@ -151,6 +151,36 @@ select is(
      where p.first_name = 'Ana' and cp.category_id = '00000000-0000-0000-0000-0000000000c1'),
   1,
   'create_player también crea la pertenencia'
+);
+-- US-207: contacto del tutor (opcional).
+-- Crear y leer en sentencias separadas: una sentencia no ve las filas que inserta ella misma.
+do $$ begin
+  perform public.create_player('00000000-0000-0000-0000-0000000000c1', 'Luz', 'Soto',
+    null, '2026-04-01', 'Mamá – Laura', '+54 11 5555-1234');
+end $$;
+select is(
+  (select guardian_phone from public.players where first_name = 'Luz'),
+  '+54 11 5555-1234',
+  'create_player guarda el contacto del tutor'
+);
+select lives_ok(
+  $$ update public.players set guardian_name = null, guardian_phone = null where first_name = 'Luz' $$,
+  'el contacto es opcional (null)'
+);
+select throws_ok(
+  $$ update public.players set guardian_phone = '11 5555 abcd' where first_name = 'Luz' $$,
+  '23514', null,
+  'un teléfono con letras viola el check'
+);
+select throws_ok(
+  $$ update public.players set guardian_phone = repeat('1', 31) where first_name = 'Luz' $$,
+  '23514', null,
+  'un teléfono de más de 30 caracteres viola el check'
+);
+select throws_ok(
+  $$ update public.players set guardian_name = '   ' where first_name = 'Luz' $$,
+  '23514', null,
+  'un contacto con sólo espacios viola el check'
 );
 select throws_ok(
   $$ select public.create_player('00000000-0000-0000-0000-0000000000c1', 'Fallida', 'X', null, '2025-04-01') $$,

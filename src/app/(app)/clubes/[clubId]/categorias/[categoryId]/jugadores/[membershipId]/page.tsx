@@ -13,7 +13,7 @@ import {
   rejoinPlayer,
   updatePlayer,
 } from "@/data/players-actions";
-import { addDays, formatDate } from "@/domain/players";
+import { addDays, formatDate, phoneHref } from "@/domain/players";
 import { defaultDateInSeason, todayInArgentina } from "@/domain/season";
 
 type Props =
@@ -121,9 +121,17 @@ async function EditPlayer({ params }: Pick<Props, "params">) {
         ← Volver al plantel
       </Link>
       <h2 className="text-2xl">Editar a {fullName}</h2>
+      {/* AC3: tocar el teléfono abre el marcador del celular. */}
+      {player.guardian_phone && (
+        <p>
+          Contacto{player.guardian_name && `: ${player.guardian_name}`} ·{" "}
+          <a href={phoneHref(player.guardian_phone)}>{player.guardian_phone}</a>
+        </p>
+      )}
       <p className="text-sm text-muted">
-        El nombre y el año de nacimiento son de la persona: el cambio se ve en
-        todas sus categorías. La fecha de alta es sólo de esta categoría.
+        El nombre, el año de nacimiento y el contacto son de la persona: el
+        cambio se ve en todas sus categorías. La fecha de alta es sólo de esta
+        categoría.
       </p>
       <PlayerForm
         action={updatePlayer.bind(null, membership.id)}
@@ -133,6 +141,8 @@ async function EditPlayer({ params }: Pick<Props, "params">) {
           lastName: player.last_name,
           birthYear: player.birth_year?.toString() ?? "",
           joinedOn: membership.joined_on,
+          guardianName: player.guardian_name ?? "",
+          guardianPhone: player.guardian_phone ?? "",
         }}
         submitLabel="Guardar cambios"
         pendingLabel="Guardando…"

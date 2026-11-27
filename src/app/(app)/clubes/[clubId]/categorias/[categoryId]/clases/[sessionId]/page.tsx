@@ -62,6 +62,8 @@ async function SessionAttendance({ params }: Pick<Props, "params">) {
               firstName: "",
               lastName: "",
               birthYear: "",
+              guardianName: "",
+              guardianPhone: "",
               joinedOn: session.held_on,
             }}
             submitLabel="Agregar jugador"

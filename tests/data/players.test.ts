@@ -22,7 +22,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const MEMBERSHIP_COLUMNS =
-  "id, category_id, joined_on, left_on, player:players(id, first_name, last_name, birth_year)";
+  "id, category_id, joined_on, left_on, player:players(id, first_name, last_name, birth_year, guardian_name, guardian_phone)";
 
 function membership(id: string, lastName: string, firstName: string) {
   return {
@@ -117,7 +117,12 @@ describe("listClubPlayers", () => {
 
     expect(mocks.from).toHaveBeenCalledWith("players");
     expect(mocks.calls).toEqual([
-      ["select", ["id, first_name, last_name, birth_year"]],
+      [
+        "select",
+        [
+          "id, first_name, last_name, birth_year, guardian_name, guardian_phone",
+        ],
+      ],
       ["eq", ["club_id", "club-1"]],
     ]);
   });

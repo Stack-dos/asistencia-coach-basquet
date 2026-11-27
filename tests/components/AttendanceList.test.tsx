@@ -9,7 +9,14 @@ afterEach(cleanup);
 
 function row(id: string, lastName: string, present: boolean): AttendanceRow {
   return {
-    player: { id, first_name: "Nombre", last_name: lastName, birth_year: null },
+    player: {
+      id,
+      first_name: "Nombre",
+      last_name: lastName,
+      birth_year: null,
+      guardian_name: null,
+      guardian_phone: null,
+    },
     present,
   };
 }
