@@ -73,6 +73,8 @@ async function Players({ params, searchParams }: Props) {
             firstName: "",
             lastName: "",
             birthYear: "",
+            guardianName: "",
+            guardianPhone: "",
             joinedOn: defaultDateInSeason(
               category.season_year,
               todayInArgentina(),
