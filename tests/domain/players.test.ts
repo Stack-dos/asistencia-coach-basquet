@@ -4,6 +4,8 @@ import {
   formatDate,
   isActiveOn,
   isSameName,
+  parseGuardianPhone,
+  phoneHref,
   isValidIsoDate,
   joinedOnError,
   leftOnError,
@@ -67,6 +69,8 @@ const valid: PlayerFields = {
   lastName: "Pérez",
   birthYear: "2013",
   joinedOn: "2026-03-02",
+  guardianName: "",
+  guardianPhone: "",
 };
 
 describe("isValidIsoDate", () => {
@@ -117,6 +121,8 @@ describe("parsePlayerInput", () => {
         lastName: "Pérez",
         birthYear: 2013,
         joinedOn: "2026-03-02",
+        guardianName: null,
+        guardianPhone: null,
       },
     });
   });
@@ -202,5 +208,70 @@ describe("isActiveOn (US-302 AC1)", () => {
     expect(isActiveOn({ ...membership, left_on: null }, "2026-12-31")).toBe(
       true,
     );
+  });
+});
+
+describe("contacto del tutor (US-207)", () => {
+  test("AC1: el contacto es opcional (vacío → null)", () => {
+    const result = parsePlayerInput(
+      { ...valid, guardianName: "  ", guardianPhone: " " },
+      2026,
+      2026,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      value: { guardianName: null, guardianPhone: null },
+    });
+  });
+
+  test("guarda el contacto sin espacios de más", () => {
+    const result = parsePlayerInput(
+      {
+        ...valid,
+        guardianName: "  Mamá   – Laura ",
+        guardianPhone: " +54 9 11 5555-1234 ",
+      },
+      2026,
+      2026,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        guardianName: "Mamá – Laura",
+        guardianPhone: "+54 9 11 5555-1234",
+      },
+    });
+  });
+
+  test("un contacto de más de 80 caracteres se rechaza", () => {
+    const result = parsePlayerInput(
+      { ...valid, guardianName: "x".repeat(81) },
+      2026,
+      2026,
+    );
+    expect(result).toMatchObject({ ok: false, error: /80 caracteres/ });
+  });
+
+  test.each(["+54 9 11 5555-1234", "(011) 4555-1234", "155551234", "123456"])(
+    "%s es un teléfono válido",
+    (phone) => {
+      expect(parseGuardianPhone(phone)).toEqual({ ok: true, phone });
+    },
+  );
+
+  test.each([
+    ["con letras", "11 5555 abcd"],
+    ["menos de 6 dígitos", "12345"],
+    ["sólo símbolos", "+() --"],
+    ["más de 30 caracteres", "1".repeat(31)],
+  ])("AC2: %s se rechaza", (_, phone) => {
+    expect(parseGuardianPhone(phone)).toMatchObject({
+      ok: false,
+      error: /al menos 6 dígitos/,
+    });
+  });
+
+  test("AC3: el link para llamar no tiene espacios ni símbolos (salvo +)", () => {
+    expect(phoneHref("+54 (11) 5555-1234")).toBe("tel:+541155551234");
   });
 });

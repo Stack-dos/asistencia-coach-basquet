@@ -75,12 +75,16 @@ const fields = {
   last_name: "Perez",
   birth_year: "2013",
   joined_on: "2026-03-02",
+  guardian_name: "Mamá – Laura",
+  guardian_phone: "11 5555-1234",
 };
 const values = {
   firstName: "Juan",
   lastName: "Perez",
   birthYear: "2013",
   joinedOn: "2026-03-02",
+  guardianName: "Mamá – Laura",
+  guardianPhone: "11 5555-1234",
 };
 
 function form(data: Record<string, string>): FormData {
@@ -116,6 +120,8 @@ describe("createPlayer", () => {
             p_last_name: "Perez",
             p_birth_year: 2013,
             p_joined_on: "2026-03-02",
+            p_guardian_name: "Mamá – Laura",
+            p_guardian_phone: "11 5555-1234",
           },
         ],
       ],
@@ -245,7 +251,15 @@ describe("updatePlayer", () => {
       ["from", ["players"]],
       [
         "update",
-        [{ first_name: "Juan Martín", last_name: "Perez", birth_year: 2013 }],
+        [
+          {
+            first_name: "Juan Martín",
+            last_name: "Perez",
+            birth_year: 2013,
+            guardian_name: "Mamá – Laura",
+            guardian_phone: "11 5555-1234",
+          },
+        ],
       ],
       ["eq", ["id", "player-1"]],
     ]);
