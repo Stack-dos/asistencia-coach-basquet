@@ -9,6 +9,8 @@ export type PlayerFields = {
   lastName: string;
   birthYear: string;
   joinedOn: string;
+  guardianName: string;
+  guardianPhone: string;
 };
 
 /** Los mismos campos, validados y normalizados para guardar. */
@@ -17,7 +19,44 @@ export type PlayerInput = {
   lastName: string;
   birthYear: number | null;
   joinedOn: string;
+  // US-207: opcionales; null = sin dato.
+  guardianName: string | null;
+  guardianPhone: string | null;
 };
+
+// Mismos límites que los check de la migración 0007.
+export const MAX_GUARDIAN_NAME_LENGTH = 80;
+export const MAX_GUARDIAN_PHONE_LENGTH = 30;
+const MIN_PHONE_DIGITS = 6;
+
+/**
+ * Teléfono del contacto (US-207), o un error. Vacío = sin teléfono (null). Se guarda tal como lo
+ * escribió el entrenador (D-32), sin los espacios de las puntas.
+ */
+export function parseGuardianPhone(
+  raw: string,
+): { ok: true; phone: string | null } | { ok: false; error: string } {
+  const phone = raw.trim();
+  if (phone === "") return { ok: true, phone: null };
+  const digits = phone.replace(/\D/g, "").length;
+  if (
+    !/^[0-9 +()-]+$/.test(phone) ||
+    digits < MIN_PHONE_DIGITS ||
+    phone.length > MAX_GUARDIAN_PHONE_LENGTH
+  ) {
+    return {
+      ok: false,
+      error:
+        "El teléfono sólo puede tener números, espacios, +, - y paréntesis, con al menos 6 dígitos.",
+    };
+  }
+  return { ok: true, phone };
+}
+
+/** "+54 (11) 5555-1234" → "tel:+541155551234": el href de un link que llama al tocarlo. */
+export function phoneHref(phone: string): string {
+  return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
 
 export type PlayerInputResult =
   { ok: true; value: PlayerInput } | { ok: false; error: string };
@@ -123,6 +162,17 @@ export function parsePlayerInput(
   const dateError = joinedOnError(fields.joinedOn, seasonYear);
   if (dateError) return { ok: false, error: dateError };
 
+  // Espacios repetidos colapsados, como en los nombres; vacío = sin contacto.
+  const guardianName = fields.guardianName.trim().replace(/\s+/g, " ");
+  if (guardianName.length > MAX_GUARDIAN_NAME_LENGTH) {
+    return {
+      ok: false,
+      error: `El contacto no puede tener más de ${MAX_GUARDIAN_NAME_LENGTH} caracteres.`,
+    };
+  }
+  const phone = parseGuardianPhone(fields.guardianPhone);
+  if (!phone.ok) return phone;
+
   return {
     ok: true,
     value: {
@@ -130,6 +180,8 @@ export function parsePlayerInput(
       lastName: lastName.name,
       birthYear,
       joinedOn: fields.joinedOn,
+      guardianName: guardianName || null,
+      guardianPhone: phone.phone,
     },
   };
 }
