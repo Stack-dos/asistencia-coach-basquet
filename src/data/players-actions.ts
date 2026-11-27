@@ -40,6 +40,8 @@ function readPlayerFields(formData: FormData): PlayerFields {
     lastName: text("last_name"),
     birthYear: text("birth_year"),
     joinedOn: text("joined_on"),
+    guardianName: text("guardian_name"),
+    guardianPhone: text("guardian_phone"),
   };
 }
 
@@ -103,6 +105,8 @@ export async function createPlayer(
     p_last_name: input.lastName,
     p_birth_year: input.birthYear,
     p_joined_on: input.joinedOn,
+    p_guardian_name: input.guardianName,
+    p_guardian_phone: input.guardianPhone,
   });
   if (error) return { error: playerErrorMessage(error.code), values };
 
@@ -174,6 +178,8 @@ export async function updatePlayer(
       first_name: input.firstName,
       last_name: input.lastName,
       birth_year: input.birthYear,
+      guardian_name: input.guardianName,
+      guardian_phone: input.guardianPhone,
     })
     .eq("id", membership.player.id);
   if (playerUpdate.error) {
