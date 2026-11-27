@@ -53,18 +53,20 @@ Pilares:
 - Landing pública y guía de uso paso a paso (US-206).
 - PDF de la categoría: jugadores activos, asistencias y estadísticas (US-503, D-14).
 - Pruebas de carga y observabilidad de la web y la base (US-504, US-505, D-27).
+- Contacto del tutor de cada jugador (US-207) y plan escrito de cada clase (US-306).
+- Después de v1.0 (v1.1): clubes compartidos entre varios entrenadores (Hito 6, D-04).
 
 **Fuera de alcance (v1.0):**
 
-- Compartir clubes/categorías entre varios entrenadores (ver D-04).
+- Compartir categorías sueltas entre entrenadores (se comparte el club entero, D-04).
 - Importar planillas de Excel existentes (ver D-14).
 - Exportar a Excel (ver D-14). El PDF de la categoría sí entra (US-503).
 - Clases recurrentes / calendario automático de clases (ver D-08).
 - Estado "ausente justificado" (ver D-09).
 - Modo offline (ver D-15).
 - App nativa móvil (se cubre con web responsive).
-- Datos de jugadores más allá de nombre, año de nacimiento y fechas (contacto, tutor, fecha
-  de nacimiento completa).
+- Datos de jugadores más allá de nombre, año de nacimiento, fechas y un contacto (varios
+  contactos, fecha de nacimiento completa).
 - Asignación automática de categoría por año de nacimiento (ver D-25).
 
 ### 1.4 Métricas de éxito
@@ -135,15 +137,17 @@ durante la clase, sin mantener fórmulas.
 
 ### 4.1 Entidades principales
 
-| Entidad                 | Campos principales                                                                                                                | Notas                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `auth.users` (Supabase) | `id`, `email`                                                                                                                     | El entrenador. No se crea tabla de perfil propia en v1.                                   |
-| `clubs`                 | `id`, `coach_id → auth.users`, `name`, `trial_sessions` (smallint, 0 = sin prueba), `created_at`                                  | `trial_sessions` lo agrega US-305.                                                        |
-| `categories`            | `id`, `club_id → clubs`, `name`, `season_year` (smallint), `created_at`                                                           | Una categoría de **una** temporada ("U13 2026").                                          |
-| `players`               | `id`, `club_id → clubs`, `first_name`, `last_name`, `birth_year` (smallint, nullable), `started_on_trial` (boolean), `created_at` | La **persona**. Es la misma en todas las temporadas. `started_on_trial` lo agrega US-305. |
-| `category_players`      | `id`, `category_id → categories`, `player_id → players`, `joined_on`, `left_on` (nullable), `created_at`                          | **Pertenencia**: `joined_on` = alta, `left_on` = baja.                                    |
-| `sessions`              | `id`, `category_id → categories`, `held_on` (date), `created_at`                                                                  | Una clase.                                                                                |
-| `attendances`           | `session_id → sessions`, `player_id → players`, PK compuesta                                                                      | Existe una fila sólo si el jugador estuvo **presente**.                                   |
+| Entidad                 | Campos principales                                                                                                                                                              | Notas                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `auth.users` (Supabase) | `id`, `email`                                                                                                                                                                   | El entrenador. No se crea tabla de perfil propia en v1.                                                        |
+| `clubs`                 | `id`, `coach_id → auth.users`, `name`, `trial_sessions` (smallint, 0 = sin prueba), `created_at`                                                                                | `trial_sessions` lo agrega US-305.                                                                             |
+| `categories`            | `id`, `club_id → clubs`, `name`, `season_year` (smallint), `created_at`                                                                                                         | Una categoría de **una** temporada ("U13 2026").                                                               |
+| `players`               | `id`, `club_id → clubs`, `first_name`, `last_name`, `birth_year` (smallint, nullable), `started_on_trial` (boolean), `guardian_name`, `guardian_phone` (nullable), `created_at` | La **persona**. Es la misma en todas las temporadas. `started_on_trial` lo agrega US-305; el contacto, US-207. |
+| `category_players`      | `id`, `category_id → categories`, `player_id → players`, `joined_on`, `left_on` (nullable), `created_at`                                                                        | **Pertenencia**: `joined_on` = alta, `left_on` = baja.                                                         |
+| `sessions`              | `id`, `category_id → categories`, `held_on` (date), `plan` (text, nullable), `created_at`                                                                                       | Una clase. `plan` lo agrega US-306.                                                                            |
+| `club_members`          | `club_id → clubs`, `user_id → auth.users`, `role` (`owner` / `coach`), PK compuesta                                                                                             | Quién tiene acceso a un club (Hito 6).                                                                         |
+| `club_invites`          | `id`, `club_id → clubs`, `token`, `role`, `expires_at`, `created_by`                                                                                                            | Invitación de un solo uso (Hito 6).                                                                            |
+| `attendances`           | `session_id → sessions`, `player_id → players`, PK compuesta                                                                                                                    | Existe una fila sólo si el jugador estuvo **presente**.                                                        |
 
 Relaciones:
 
@@ -185,8 +189,10 @@ vuelve en septiembre.
 - `attendances`: PK `(session_id, player_id)`; borrado en cascada desde `sessions` y `players`.
 - Trigger `attendances_validate`: el jugador debe tener una **pertenencia en la categoría de
   la clase** que incluya la fecha de la clase.
+- `sessions.plan` hasta 2000 caracteres; `players.guardian_name` hasta 80 y
+  `players.guardian_phone` hasta 30 (US-207, US-306).
 - Row Level Security en todas las tablas: un entrenador sólo lee/escribe filas cuyo club tiene
-  `coach_id = auth.uid()`. Se implementa con las funciones SQL `owns_club(club_id)` y
+  `coach_id = auth.uid()` (desde el Hito 6: cuyo club lo tiene en `club_members`). Se implementa con las funciones SQL `owns_club(club_id)` y
   `owns_category(category_id)`.
 
 ### 4.3 Vistas (agregados)
@@ -261,7 +267,8 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 ## 7. Reglas de negocio consolidadas
 
-- **RN-01** Cada entrenador ve y modifica sólo sus clubes y todo lo que cuelga de ellos.
+- **RN-01** Cada entrenador ve y modifica sólo sus clubes y todo lo que cuelga de ellos. Desde
+  el Hito 6, "sus clubes" son aquellos de los que es miembro.
 - **RN-02** Un jugador es una persona del club. En cada temporada puede tener una o más
   pertenencias a categorías de esa temporada (D-10, D-24).
 - **RN-03** Un jugador puede tener asistencia sólo en clases de una categoría donde tiene una
@@ -281,6 +288,9 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 - **RN-11** Un jugador que entra al club a prueba está en prueba hasta ir a `N` clases
   (configurable por club, en cualquier categoría del club; las ausencias no suman). Si se da de
   baja antes, es una prueba no continuada: no cuenta como nuevo ni como abandono (D-28, D-29).
+- **RN-12** En un club compartido, el `owner` puede borrar el club, invitar y quitar
+  miembros; el `coach` gestiona todo lo demás. Un club tiene siempre al menos un `owner`
+  (D-04).
 
 ---
 
@@ -310,7 +320,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 | D-01 | Métricas de éxito                        | Sección 1.4                                                             | A controlar |
 | D-02 | Stack                                    | Next.js + TS + Tailwind en Vercel, Supabase                             | Confirmada  |
 | D-03 | NFR                                      | Mobile-first, costo 0                                                   | A controlar |
-| D-04 | Clubes compartidos                       | No, un club = un entrenador                                             | A controlar |
+| D-04 | Clubes compartidos                       | Sí, club entero, roles `owner`/`coach`; en v1.1 (Hito 6)                | Confirmada  |
 | D-05 | Jugador nuevo                            | Primera pertenencia en el club                                          | Confirmada  |
 | D-06 | Abandono                                 | Baja manual con fecha; fin de año no cuenta                             | Confirmada  |
 | D-07 | Período anual                            | Año calendario = temporada                                              | Confirmada  |
@@ -336,6 +346,10 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 | D-27 | Pruebas de carga y observabilidad        | k6 + Grafana, Sentry, Speed Insights, pg_stat_statements; planes gratis | Confirmada  |
 | D-28 | Período de prueba                        | `N` clases presentes por club, en todas sus categorías; baja manual     | Confirmada  |
 | D-29 | Prueba en las estadísticas               | Activo sí; nuevo y abandono no si deja en prueba; se cuenta aparte      | A controlar |
+| D-31 | Plan de la clase                         | Texto plano con saltos de línea, hasta 2000 caracteres                  | Confirmada  |
+| D-32 | Contacto del tutor                       | Uno por jugador, opcional, nombre + teléfono tal como se escribe        | A controlar |
+| D-33 | Invitación a un club                     | Link de un solo uso, vence a los 7 días                                 | Confirmada  |
+| D-34 | Asistencia simultánea                    | Concurrencia optimista: el segundo en guardar recibe aviso              | A controlar |
 | D-30 | Quién entra a prueba                     | Marca "Viene a probar" en el alta; por defecto sí desde una clase       | A controlar |
 
 ### 9.2 ADRs pendientes
@@ -447,7 +461,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 - **Objetivo del hito:** el entrenador carga sus clubes, categorías y jugadores, y puede
   pasar de una temporada a la siguiente.
-- **Épicas:** 3 · **Historias:** 6 · **Esfuerzo total estimado:** ~15 días·persona
+- **Épicas:** 3 · **Historias:** 7 · **Esfuerzo total estimado:** ~17 días·persona
 
 #### Épica H2-E1: Clubes y categorías
 
@@ -617,6 +631,51 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 > a mano. **Por qué:** los años de cada categoría cambian de forma irregular entre temporadas;
 > la sugerencia automática queda en el roadmap.
 
+#### US-207 — Contacto del tutor del jugador
+
+- **Esfuerzo:** S (2 días) · **Prioridad:** Media · **Dependencias:** US-203
+- **Objetivo Funcional:** tener a mano a quién llamar por un chico (lesión, suspensión de
+  clase).
+- **Narrativa:** Como entrenador, quiero guardar el teléfono del padre, madre o tutor de cada
+  jugador, para poder avisarle algo rápido desde el celular.
+- **Detalle técnico:**
+  - Migración: `players.guardian_name text` y `players.guardian_phone text`, ambos opcionales
+    (`null` = sin dato), con `check` de largo máximo (80 y 30). En `players` y no en la
+    pertenencia: el tutor es el mismo en todas las categorías y temporadas.
+  - `src/domain/players.ts`: `parsePlayerInput` suma los dos campos. Vacío → `null`; el
+    teléfono acepta sólo dígitos, espacios, `+`, `-` y paréntesis, con al menos 6 dígitos. Se
+    guarda como lo escribió el entrenador (D-32).
+  - `PlayerForm`: campos "Contacto (ej.: Mamá – Laura)" y "Teléfono del contacto", ambos
+    opcionales.
+  - Página del jugador: el teléfono como link `tel:` (en el celular, tocarlo llama).
+- **Criterios de Aceptación:**
+  - AC1: se puede dar de alta y editar un jugador con o sin contacto.
+  - AC2: un teléfono con letras o con menos de 6 dígitos se rechaza con un mensaje claro.
+  - AC3: en la página del jugador, tocar el teléfono abre el marcador del celular.
+  - AC4: el contacto es el mismo en todas las categorías del jugador.
+- **Reglas de Negocio:** RN-01, RN-12; D-32.
+- **Entidades:** `players`.
+- **Testing Mínimo:** unitario de la validación del teléfono (vacío, válido con `+54`, con
+  letras, demasiado corto); pgTAP de los `check`.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0010_guardian_contact.sql
+  src/domain/players.ts (actualizar)
+  src/data/players-actions.ts (actualizar)
+  src/components/PlayerForm.tsx (actualizar)
+  tests/domain/players.test.ts (actualizar)
+  tests/db/players.test.sql (actualizar)
+  ```
+
+> ⚠️ **Esto tiene que controlarse** (D-32) — **Pregunta:** ¿cómo se guarda el contacto?
+> **Decisión:** un solo contacto por jugador (nombre libre + teléfono), opcional, tal como lo
+> escribe el entrenador. **Por qué:** alcanza para llamar; varios contactos con parentesco
+> serían una tabla aparte, y normalizar a formato internacional sólo hace falta para un botón
+> de WhatsApp (roadmap). **Datos personales:** es un dato de un adulto vinculado a un menor
+> (Ley 25.326): se guarda sólo si el entrenador lo carga, lo protege RLS y no se exporta en el
+> PDF (US-503).
+
 #### Épica H2-E3: Bienvenida y ayuda
 
 #### US-206 — Landing y guía de uso
@@ -647,7 +706,7 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 - **Objetivo del hito:** reemplazar la hoja de Excel: cargar clases, tomar asistencia y ver
   la grilla mensual.
-- **Épicas:** 2 · **Historias:** 5 · **Esfuerzo total estimado:** ~16 días·persona
+- **Épicas:** 2 · **Historias:** 6 · **Esfuerzo total estimado:** ~17 días·persona
 
 #### Épica H3-E1: Clases
 
@@ -865,6 +924,45 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 > club, al empezar a usar la app el plantel que ya venía entrenando quedaría entero en prueba.
 > Agregar a un chico desde una clase (el caso típico de "vino a probar") trae la casilla
 > marcada.
+
+#### US-306 — Planificación de la clase
+
+- **Esfuerzo:** S (1 día) · **Prioridad:** Media · **Dependencias:** US-301, US-302
+- **Objetivo Funcional:** escribir qué se va a trabajar en cada clase y tenerlo a mano en la
+  cancha.
+- **Narrativa:** Como entrenador, quiero anotar el plan de cada clase, para preparar el
+  entrenamiento y leerlo mientras tomo asistencia.
+- **Detalle técnico:**
+  - Migración: `sessions.plan text` opcional (`null` = sin plan) con
+    `check (char_length(plan) <= 2000)`. RLS y grants no cambian.
+  - `src/data/sessions-actions.ts`: `updateSessionPlan(categoryId, sessionId, …)`; texto vacío
+    o sólo espacios se guarda como `null`.
+  - Página de la clase (`/clases/[sessionId]`): `<details>` "Plan de la clase" arriba de la
+    asistencia, con `<textarea>` y botón "Guardar plan". Se muestra como texto plano
+    respetando los saltos de línea (`whitespace-pre-line`), abierto si hay plan.
+  - Lista de clases (US-301): marca "Con plan" en las clases que lo tienen.
+  - Sumar a `/guia` el paso "Planificá la clase" (US-206).
+- **Criterios de Aceptación:**
+  - AC1: se puede escribir, editar y borrar el plan de una clase.
+  - AC2: el plan se ve con sus saltos de línea y no interpreta HTML.
+  - AC3: un plan de más de 2000 caracteres se rechaza con un mensaje claro.
+  - AC4: la lista de clases muestra cuáles tienen plan.
+- **Reglas de Negocio:** RN-01; D-31.
+- **Entidades:** `sessions`.
+- **Testing Mínimo:** test de la acción (vacío → `null`, demasiado largo); pgTAP del `check`.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0011_session_plan.sql
+  src/data/sessions-actions.ts (actualizar)
+  src/app/(app)/clubes/[clubId]/categorias/[categoryId]/clases/[sessionId]/page.tsx (actualizar)
+  tests/data/sessions-actions.test.ts (actualizar)
+  tests/db/sessions.test.sql (actualizar)
+  ```
+
+> ✅ **Confirmada** (D-31) — **Pregunta:** ¿el plan admite formato (negritas, listas)?
+> **Decisión:** texto plano con saltos de línea. **Por qué:** Markdown necesita una librería
+> para mostrarse y sanitizar HTML; para planificar una clase alcanza con renglones.
 
 ---
 
@@ -1180,6 +1278,142 @@ Regla: la UI nunca llama a Supabase directo; el dominio no importa nada de las o
 
 ---
 
+### Hito 6 — Clubes compartidos (v1.1)
+
+- **Objetivo del hito:** que varios entrenadores de un mismo club gestionen juntos sus
+  categorías, jugadores, clases y asistencia.
+- **Épicas:** 1 · **Historias:** 3 · **Esfuerzo total estimado:** ~9 días·persona
+- **Por qué después de v1.0:** es la historia con más riesgo de seguridad (cambia quién ve
+  qué en toda la app). El costo de agregarla después no crece mucho, porque todas las
+  políticas RLS pasan por `owns_club` / `owns_category`: cambiando esas dos definiciones, el
+  resto de las tablas queda cubierto (D-04).
+
+#### Épica H6-E1: Miembros del club
+
+#### US-601 — Membresía del club y RLS compartida
+
+- **Esfuerzo:** M (4 días) · **Prioridad:** Urgente · **Dependencias:** US-502
+- **Objetivo Funcional:** que el acceso a un club dependa de ser miembro, no de haberlo
+  creado.
+- **Narrativa:** Como entrenador, quiero que otros entrenadores de mi club vean y carguen lo
+  mismo que yo, para trabajar sobre los mismos datos.
+- **Detalle técnico:**
+  - Migración: tabla `club_members (club_id, user_id, role)` con PK `(club_id, user_id)`,
+    `role in ('owner', 'coach')`, cascada desde `clubs` y `auth.users`. Migración de datos:
+    cada `clubs.coach_id` actual pasa a ser `owner`.
+  - La política de `clubs` y `owns_club()` pasan a mirar `club_members`. Las políticas de
+    categorías, jugadores, clases y asistencia no se tocan.
+  - Crear un club agrega a su creador como `owner` en la misma transacción (función SQL
+    `create_club`).
+  - `clubs.coach_id` deja de dar acceso: se renombra a `created_by` (`on delete set null`), en
+    dos pasos para no romper el código anterior (sección 13). Se elimina
+    `unique(coach_id, name)`: con varios miembros deja de tener sentido.
+  - Sólo un `owner` puede borrar el club (RN-07) o cambiar miembros (RN-12).
+  - Trigger: si se va el último miembro de un club (por ejemplo, borró su cuenta), se borra el
+    club.
+  - Asistencia simultánea (D-34): `set_session_attendance` recibe cuándo se cargó la página y
+    rechaza el guardado si otro entrenador guardó esa clase después; la página avisa "Otro
+    entrenador guardó esta clase: recargá para ver sus cambios".
+- **Criterios de Aceptación:**
+  - AC1: los clubes existentes siguen funcionando igual para su creador (ahora `owner`).
+  - AC2: un miembro `coach` ve y carga categorías, jugadores, clases y asistencia del club.
+  - AC3: un no-miembro sigue sin ver nada (todas las tablas).
+  - AC4: un `coach` no puede borrar el club ni cambiar miembros.
+  - AC5: si dos entrenadores guardan la misma clase, el segundo recibe el aviso y no pisa al
+    primero.
+- **Reglas de Negocio:** RN-01, RN-07, RN-12; D-04, D-34.
+- **Entidades:** `clubs`, `club_members`, `attendances`.
+- **Testing Mínimo:** pgTAP: cada tabla con `owner`, `coach` y no-miembro; migración de datos;
+  último miembro. Integración: AC5.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0012_club_members.sql
+  src/data/clubs-actions.ts (actualizar)
+  src/data/attendances-actions.ts (actualizar)
+  tests/db/club-members.test.sql
+  tests/integration/club-members.test.ts
+  ```
+
+#### US-602 — Invitar entrenadores con un link
+
+- **Esfuerzo:** M (3 días) · **Prioridad:** Urgente · **Dependencias:** US-601
+- **Objetivo Funcional:** sumar a otro entrenador a un club sin saber su email.
+- **Narrativa:** Como dueño de un club, quiero generar un link de invitación y mandarlo por
+  WhatsApp, para que otro entrenador se sume al club.
+- **Detalle técnico:**
+  - Migración: tabla `club_invites (id, club_id, token, role, expires_at, created_by)`. El
+    token es aleatorio (`gen_random_bytes`), de un solo uso y vence a los 7 días.
+  - Función `accept_invite(token)` con `security definer` (el invitado todavía no es miembro,
+    así que RLS no lo dejaría escribir en `club_members`): valida token, vencimiento y uso, y
+    agrega al usuario con el rol de la invitación. Es la primera función `security definer`
+    del proyecto: `search_path` vacío, sin SQL dinámico y con tests de abuso.
+  - Página `/invitacion/[token]`: si no hay sesión, pasa por login o registro y vuelve; muestra
+    el nombre del club y el botón "Unirme".
+- **Criterios de Aceptación:**
+  - AC1: un `owner` genera un link y otro usuario, al aceptarlo, queda como miembro.
+  - AC2: un link vencido, usado o inventado muestra "La invitación no es válida".
+  - AC3: aceptar dos veces no duplica al miembro.
+  - AC4: un `coach` no puede generar invitaciones.
+- **Reglas de Negocio:** RN-12; D-33.
+- **Entidades:** `club_invites`, `club_members`.
+- **Testing Mínimo:** pgTAP de `accept_invite` (válido, vencido, usado, inexistente, ya
+  miembro); integración del flujo completo.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0013_club_invites.sql
+  src/data/invites.ts
+  src/data/invites-actions.ts
+  src/app/invitacion/[token]/page.tsx
+  tests/db/club-invites.test.sql
+  tests/integration/club-invites.test.ts
+  ```
+
+#### US-603 — Entrenadores del club
+
+- **Esfuerzo:** S (2 días) · **Prioridad:** Alta · **Dependencias:** US-602
+- **Objetivo Funcional:** ver y administrar quién tiene acceso al club.
+- **Narrativa:** Como dueño de un club, quiero ver qué entrenadores lo comparten, cambiar su
+  rol o quitarlos, para controlar quién maneja los datos de mis jugadores.
+- **Detalle técnico:**
+  - Sección "Entrenadores" en la página del club: lista de miembros (email y rol), botón
+    "Invitar" (US-602), cambiar rol y quitar, con `ConfirmDialog`.
+  - El email de cada miembro sale de una función `club_member_emails(club_id)` con
+    `security definer` que sólo responde a miembros del club.
+  - Cualquier miembro puede salir del club; el último `owner` no puede salir ni ser quitado
+    sin antes nombrar a otro.
+  - Sumar a `/guia` el paso "Compartí el club" (US-206).
+- **Criterios de Aceptación:**
+  - AC1: un miembro ve la lista de entrenadores del club; un no-miembro no.
+  - AC2: un `owner` cambia roles y quita miembros; un `coach` no.
+  - AC3: el último `owner` no puede salir ni ser quitado.
+  - AC4: quien sale del club deja de verlo al instante.
+- **Reglas de Negocio:** RN-12; D-04.
+- **Entidades:** `club_members`.
+- **Testing Mínimo:** pgTAP de la regla del último `owner` y de `club_member_emails`.
+- **Archivos a crear:**
+
+  ```txt
+  supabase/migrations/0014_club_member_admin.sql
+  src/data/members.ts
+  src/data/members-actions.ts
+  src/app/(app)/clubes/[clubId]/page.tsx (actualizar)
+  tests/db/club-member-admin.test.sql
+  ```
+
+> ✅ **Confirmada** (D-33) — **Pregunta:** ¿cómo se invita a otro entrenador? **Decisión:** con
+> un link de un solo uso que se comparte por fuera de la app. **Por qué:** buscar por email
+> revelaría qué emails están registrados y obligaría a configurar envío de mails.
+
+> ⚠️ **Esto tiene que controlarse** (D-34) — **Pregunta:** ¿qué pasa si dos entrenadores toman
+> asistencia de la misma clase a la vez? **Decisión:** el segundo en guardar recibe un aviso y
+> recarga (concurrencia optimista); no se pisan datos en silencio. **Por qué:** guardar cada
+> toque por separado evitaría el conflicto, pero contradice el modelo de US-302 (un solo
+> Guardar) y multiplica las escrituras con mala señal en la cancha.
+
+---
+
 ## 11. Definición de "Hecho" (DoD)
 
 - [ ] Criterios de aceptación de la historia verificados.
@@ -1245,11 +1479,11 @@ Los tiempos asumen un único desarrollador sin guardia.
 3. Clases recurrentes según días de entrenamiento (D-08).
 4. Ausente justificado (D-09).
 5. Vista consolidada de todos los clubes del entrenador (D-20).
-6. Clubes compartidos entre entrenadores con roles (D-04).
+6. Botón de WhatsApp al contacto del tutor (requiere normalizar el teléfono, D-32).
 7. Sugerir la categoría nueva por año de nacimiento al iniciar la temporada (D-25).
 8. Modo offline (D-15).
 9. Login con Google (D-17).
-10. Datos ampliados del jugador (contacto, tutor, fecha de nacimiento completa).
+10. Datos ampliados del jugador (varios contactos, fecha de nacimiento completa).
 
 ---
 
@@ -1322,3 +1556,14 @@ El documento se revisó cuatro veces después del primer borrador. Correcciones 
 - Quién entra a prueba se marca en el alta (D-30, a controlar).
 - La migración de vistas pasa a `0009`; US-401 depende de US-305 y su seed suma los casos de
   prueba. Carga del Hito 3: ~16 días·persona.
+
+**Iteración 7 — plan de clase, contacto del tutor y clubes compartidos (2026-11-27):**
+
+- US-207 (Hito 2): contacto opcional del tutor en `players` (nombre + teléfono, D-32).
+- US-306 (Hito 3): plan de la clase en texto plano (D-31).
+- Hito 6 (v1.1), US-601 a US-603: clubes compartidos con roles `owner`/`coach`, invitación
+  por link (D-33) y aviso si dos entrenadores guardan la misma clase (D-34). D-04 pasa de "No"
+  a "Sí, en v1.1"; sale de las no metas y del roadmap. RN-01 se amplía y se agrega RN-12.
+- Migraciones nuevas `0010` a `0014`. Los números siguen el orden del documento; si una
+  historia se implementa antes que otra con número menor, se renumera al implementarla.
+- Carga por hito: H2 ~17, H3 ~17 y H6 ~9 días·persona.
