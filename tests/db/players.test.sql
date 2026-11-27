@@ -153,10 +153,13 @@ select is(
   'create_player también crea la pertenencia'
 );
 -- US-207: contacto del tutor (opcional).
+-- Crear y leer en sentencias separadas: una sentencia no ve las filas que inserta ella misma.
+do $$ begin
+  perform public.create_player('00000000-0000-0000-0000-0000000000c1', 'Luz', 'Soto',
+    null, '2026-04-01', 'Mamá – Laura', '+54 11 5555-1234');
+end $$;
 select is(
-  (select guardian_phone from public.players
-     where id = public.create_player('00000000-0000-0000-0000-0000000000c1', 'Luz', 'Soto',
-       null, '2026-04-01', 'Mamá – Laura', '+54 11 5555-1234')),
+  (select guardian_phone from public.players where first_name = 'Luz'),
   '+54 11 5555-1234',
   'create_player guarda el contacto del tutor'
 );
