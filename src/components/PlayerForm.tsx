@@ -6,7 +6,11 @@ import { FormError } from "@/components/FormError";
 import { Input } from "@/components/Input";
 import type { PlayerFormState } from "@/data/players-actions";
 import { MAX_NAME_LENGTH } from "@/domain/names";
-import type { PlayerFields } from "@/domain/players";
+import {
+  MAX_GUARDIAN_NAME_LENGTH,
+  MAX_GUARDIAN_PHONE_LENGTH,
+  type PlayerFields,
+} from "@/domain/players";
 
 type PlayerFormProps = {
   // Server Action con sus ids ya fijados con .bind (createPlayer o updatePlayer).
@@ -74,6 +78,25 @@ export function PlayerForm({
         min={`${seasonYear}-01-01`}
         max={`${seasonYear}-12-31`}
         required
+      />
+      {/* US-207: contacto del tutor, opcional (D-32). */}
+      <Input
+        id="player-guardian-name"
+        label="Contacto (opcional, ej.: Mamá – Laura)"
+        name="guardian_name"
+        defaultValue={values.guardianName}
+        maxLength={MAX_GUARDIAN_NAME_LENGTH}
+        autoComplete="off"
+      />
+      <Input
+        id="player-guardian-phone"
+        label="Teléfono del contacto (opcional)"
+        name="guardian_phone"
+        // tel: teclado de teléfono en el celular; no valida formato (lo hace el servidor).
+        type="tel"
+        defaultValue={values.guardianPhone}
+        maxLength={MAX_GUARDIAN_PHONE_LENGTH}
+        autoComplete="off"
       />
       <FormError message={state.error} />
 
